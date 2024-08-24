@@ -6,7 +6,7 @@ import '../models/barbershop.dart';
 class ApiService {
  // final String baseUrl999 = 'http://localhost:3000/barbershops';
   //https://barbershop2-5a51a1029617.herokuapp.com/
-  final String baseUrl = 'https://barbershop2-5a51a1029617.herokuapp.com/barbershops';
+  final String baseUrl = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops';
 
 
   Future<List<Barbershop>> getBarbershops(double latitude, double longitude) async {
