@@ -95,8 +95,8 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
       List<Barbershop> barbershops = await _apiService.getBarbershops(position.latitude, position.longitude);
 
       // Ensure the data is sorted by proximity
-      barbershops.sort((a, b) => _calculateDistance(latitude, longitude, a.y, a.x)
-          .compareTo(_calculateDistance(latitude, longitude, b.y, b.x)));
+      barbershops.sort((a, b) => _calculateDistance(latitude, longitude, a.y!, a.x!)
+          .compareTo(_calculateDistance(latitude, longitude, b.y!, b.x!)));
 
       developer.log('Barbershops loaded and sorted: $barbershops');
       setState(() {
@@ -107,9 +107,9 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
       List<NMarker> markers = barbershops.map((Barbershop shop) {
         return NMarker(
           id: shop.id.toString(),
-          position: NLatLng(shop.y, shop.x),
+          position: NLatLng(shop.y!, shop.x!),
           caption: NOverlayCaption(
-            text: shop.name,
+            text: shop.name ?? 'Unknown Shop',
             color: Colors.blue,
             textSize: 20.0,
           ),
@@ -255,7 +255,7 @@ Future<Position> _determinePosition() async {
                       Barbershop shop = _barbershops[index];
                       return GestureDetector(
                         onTap: () {
-                          var newPosition = NLatLng(shop.y, shop.x);
+                          var newPosition = NLatLng(shop.y ?? 0.0, shop.x ?? 0.0);
                           _mapController?.updateCamera(NCameraUpdate.fromCameraPosition(
                             NCameraPosition(target: newPosition, zoom: 17),
                           ));
@@ -279,7 +279,7 @@ Future<Position> _determinePosition() async {
                             ),
                               child: Row(
                                 children: [
-                                  shop.thumUrl == null || shop.thumUrl.isEmpty
+                                  shop.thumUrl == null || shop.thumUrl?.isEmpty == true
                                       ? Image.asset(
                                     'assets/barbershop02.jpg',  // Default image if thumUrl is null or empty
                                     width: 80,
@@ -287,7 +287,7 @@ Future<Position> _determinePosition() async {
                                     fit: BoxFit.cover,
                                   )
                                       : Image.network(
-                                    shop.thumUrl,  // Use the thumUrl if it's valid
+                                    shop.thumUrl!,  // Use the thumUrl if it's valid
                                     width: 80,
                                     height: 80,
                                     fit: BoxFit.cover,
@@ -303,7 +303,7 @@ Future<Position> _determinePosition() async {
                                               padding: const EdgeInsets.all(8.0),
                                               child: Expanded(  // Wrap shop.name in Expanded to ensure it takes only available space
                                                 child: Text(
-                                                  shop.name,
+                                                  shop.name!,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 18,
@@ -314,7 +314,7 @@ Future<Position> _determinePosition() async {
                                             ),
                                             SizedBox(width: 8), // Add spacing between name and bizhourInfo
                                             Text(
-                                              shop.bizhourInfo,
+                                              shop.bizhourInfo!,
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
@@ -325,7 +325,7 @@ Future<Position> _determinePosition() async {
                                           ],
                                         ),
                                         Text(
-                                          shop.address,
+                                          shop.address!,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.grey,
@@ -333,7 +333,7 @@ Future<Position> _determinePosition() async {
                                           overflow: TextOverflow.ellipsis, // Handle long addresses
                                         ),
                                         Text(
-                                          shop.tel,
+                                          shop.tel!,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.grey,
