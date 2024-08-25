@@ -1,14 +1,14 @@
 {
-  "name": "nearbarbershop2",
+  "name": "nearbarbershop",
   "version": "1.0.0",
-  "description": "A new Flutter project.",
+  "description": "Barbershop App",
   "main": "app.js",
   "directories": {
     "lib": "lib",
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
