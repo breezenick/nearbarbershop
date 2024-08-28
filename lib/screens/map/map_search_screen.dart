@@ -287,10 +287,18 @@ Future<Position> _determinePosition() async {
                                     fit: BoxFit.cover,
                                   )
                                       : Image.network(
-                                    shop.thumUrl! ,  // Use the thumUrl if it's valid
+                                    shop.thumUrl?? '' ,  // Use the thumUrl if it's valid
                                     width: 80,
                                     height: 80,
                                     fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        'assets/barbershop02.jpg',  // Default image if thumUrl is invalid
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
                                   ),
                                   const SizedBox(width: 15),
                                   Expanded(
@@ -301,15 +309,13 @@ Future<Position> _determinePosition() async {
                                           children: [
                                             Padding(
                                               padding: const EdgeInsets.all(8.0),
-                                              child: Expanded(  // Wrap shop.name in Expanded to ensure it takes only available space
-                                                child: Text(
-                                                  shop.name != null ? shop.name! : 'Unknown Shop',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis, // Handle long names
+                                              child: Text(
+                                                shop.name != null ? shop.name! : 'Unknown Shop',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
                                                 ),
+                                                overflow: TextOverflow.ellipsis, // Handle long names
                                               ),
                                             ),
                                             SizedBox(width: 8), // Add spacing between name and bizhourInfo
