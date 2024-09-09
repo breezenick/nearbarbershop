@@ -6,6 +6,7 @@ import '../../utils/DistanceNotifier.dart';
 import '../../utils/places_notifier2.dart';
 import '../../utils/providers_home.dart';
 import '../Map/map_screen.dart';
+import '../Map/map_search_screen.dart';
 
 class HomeBox extends ConsumerWidget {
   const HomeBox({super.key});
@@ -33,7 +34,7 @@ class HomeBox extends ConsumerWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const MapScreen()),
+                    MaterialPageRoute(builder: (context) => const MapSearchScreen()),
                   );
                 },
                 style: TextButton.styleFrom(

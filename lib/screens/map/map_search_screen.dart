@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-
 import 'dart:math' as math;
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../models/barbershop.dart';
 import '../../services/api_service.dart';
+import 'BarbershopListScreen.dart';
 
 class MapSearchScreen extends StatefulWidget {
   const MapSearchScreen({Key? key}) : super(key: key);
@@ -85,16 +83,12 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
     }
   }
 
- 
-
   Future<void> _loadBarbershops(double latitude, double longitude) async {
-
     try {
       developer.log('Loading barbershops...');
       Position position = await _determinePosition();
       List<Barbershop> barbershops = await _apiService.getBarbershops(position.latitude, position.longitude);
 
-      // Ensure the data is sorted by proximity
       barbershops.sort((a, b) => _calculateDistance(latitude, longitude, a.y!, a.x!)
           .compareTo(_calculateDistance(latitude, longitude, b.y!, b.x!)));
 
@@ -103,7 +97,6 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
         _barbershops = barbershops;
       });
 
-      // Creating markers directly from the list of barbershops
       List<NMarker> markers = barbershops.map((Barbershop shop) {
         return NMarker(
           id: shop.id.toString(),
@@ -119,42 +112,15 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
       if (_mapController != null) {
         developer.log("Adding markers to the map");
         for (NMarker marker in markers) {
-          _mapController!.addOverlay(marker);  // Add each marker to the map
+          _mapController!.addOverlay(marker);
         }
       }
     } catch (e) {
       developer.log('Error fetching barbershops: $e');
     }
   }
-  
-  /*
-  void _loadBarbershops99999() async {
-    try {
-      Position position = await _determinePosition();
-      final barbershops = await _apiService.getBarbershops(position.latitude, position.longitude);
-      setState(() {
-        _markers = barbershops.map<NMarker>((barbershop) {
-          return NMarker(
-            id: barbershop.id.toString(),
-            position: NLatLng(barbershop.latitude, barbershop.longitude),
-            captionText: barbershop.name,
-            captionColor: Colors.blue,
-            onTap: (NMarker marker, Map<String, int> info) {
-              // Define what happens when a marker is tapped
-              print('Tapped on: ${barbershop.name}');
-            },
-          );
-        }).toList();
-      });
-      _controller.addOverlayAll(_markers); // Add markers to the map
-    } catch (e) {
-      print('Error loading barbershops: $e');
-    }
-  }
-*/
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    // Simple Haversine formula to calculate distance between two points on the Earth
     const R = 6371e3; // Earth's radius in meters
     double phi1 = lat1 * (math.pi / 180);
     double phi2 = lat2 * (math.pi / 180);
@@ -166,10 +132,10 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
             math.sin(deltaLambda / 2) * math.sin(deltaLambda / 2);
     double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
-    return R * c; // Distance in meters
+    return R * c;
   }
 
-Future<Position> _determinePosition() async {
+  Future<Position> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -193,6 +159,23 @@ Future<Position> _determinePosition() async {
     return await Geolocator.getCurrentPosition();
   }
 
+  void _moveToFirstPage() {
+    // Move to the first page
+    _pageController?.jumpToPage(0);
+
+    // Update the map to show the first barbershop
+    if (_barbershops.isNotEmpty) {
+      var firstBarbershop = _barbershops[0];
+      var lat = firstBarbershop.y;
+      var lng = firstBarbershop.x;
+
+      if (lat != null && lng != null) {
+        var newPosition = NLatLng(lat, lng);
+        var newCameraPosition = NCameraPosition(target: newPosition, zoom: 17);
+        _mapController?.updateCamera(NCameraUpdate.fromCameraPosition(newCameraPosition));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +204,48 @@ Future<Position> _determinePosition() async {
                 zoomGesturesEnable: true,
               ),
             ),
+            // Button to move to the first page
+            Padding(
+              padding: const EdgeInsets.only(top:380),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Center the buttons in the row
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white, // Background color of the button
+                      ),
+                      onPressed: _moveToFirstPage,
+                      child: const Text(
+                        "맨 처음으로",
+                        style: TextStyle(fontSize: 16, color: Colors.black),
+                      ),
+                    ),
+                    const SizedBox(width: 20), // Adds space between the two buttons
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white, // Background color of the button
+                      ),
+                      child: const Text(
+                        "목록보기",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BarbershopListScreen(
+                              id: _barbershops[_currentIndex].id,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             if (_barbershops.isNotEmpty)
               Positioned(
                 bottom: 20,
@@ -259,7 +284,6 @@ Future<Position> _determinePosition() async {
                           _mapController?.updateCamera(NCameraUpdate.fromCameraPosition(
                             NCameraPosition(target: newPosition, zoom: 17),
                           ));
-                          // Optionally, interact with the marker here
                         },
                         child: Transform.scale(
                           scale: index == _currentIndex ? 1 : 0.9,
@@ -277,83 +301,80 @@ Future<Position> _determinePosition() async {
                               ],
                               borderRadius: BorderRadius.circular(10),
                             ),
-                              child: Row(
-                                children: [
-                                  shop.thumUrl == null || shop.thumUrl?.isEmpty == true
-                                      ? Image.asset(
-                                    'assets/barbershop02.jpg',  // Default image if thumUrl is null or empty
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                  )
-                                      : Image.network(
-                                    shop.thumUrl?? '' ,  // Use the thumUrl if it's valid
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Image.asset(
-                                        'assets/barbershop02.jpg',  // Default image if thumUrl is invalid
-                                        width: 80,
-                                        height: 80,
-                                        fit: BoxFit.cover,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 15),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: Text(
-                                                shop.name != null ? shop.name! : 'Unknown Shop',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                ),
-                                                overflow: TextOverflow.ellipsis, // Handle long names
-                                              ),
-                                            ),
-                                            SizedBox(width: 8), // Add spacing between name and bizhourInfo
-                                            Text(
-                                              shop.bizhourInfo ?? 'No Business Hours Info' ,
-
+                            child: Row(
+                              children: [
+                                shop.thumUrl == null || shop.thumUrl?.isEmpty == true
+                                    ? Image.asset(
+                                  'assets/barbershop02.jpg',  // Default image if thumUrl is null or empty
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                )
+                                    : Image.network(
+                                  shop.thumUrl ?? '',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      'assets/barbershop02.jpg',
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 15),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Text(
+                                              shop.name != null ? shop.name! : 'Unknown Shop',
                                               style: TextStyle(
-                                                fontSize: 13,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.red,
+                                                fontSize: 18,
                                               ),
-                                              overflow: TextOverflow.ellipsis, // Handle long bizhourInfo
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ],
-                                        ),
-                                        Text(
-                                          shop.address ?? 'Address Not Available' ,
-
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
                                           ),
-                                          overflow: TextOverflow.ellipsis, // Handle long addresses
-                                        ),
-                                        Text(
-                                          shop.tel ?? 'No Phone Number' ,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
+                                          SizedBox(width: 8),
+                                          Text(
+                                            shop.bizhourInfo ?? 'No Business Hours Info',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          overflow: TextOverflow.ellipsis, // Handle long tel numbers
+                                        ],
+                                      ),
+                                      Text(
+                                        shop.address ?? 'Address Not Available',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey,
                                         ),
-                                      ],
-                                    ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        shop.tel ?? 'No Phone Number',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              )
-
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
