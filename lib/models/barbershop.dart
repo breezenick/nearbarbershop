@@ -21,6 +21,7 @@ class Barbershop {
   final String? homePage;
 
 
+
   Barbershop( {
     this.id,
     this.name,

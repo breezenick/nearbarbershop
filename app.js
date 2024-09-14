@@ -2,27 +2,38 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const { scrapeInstagramImages } = require('./scraper');
+const Barbershop = require('./models/barbershop'); // Import the Barbershop model
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-
-// Root URL route
 app.get('/', (req, res) => {
     res.send('★★★★★ Welcome to the MongoDB API ★★★★★');
 });
 
-// Fetch all barbershops
+// Fetch all barbershops by homePage
 app.get('/barbershops', async (req, res) => {
+    const homePage = req.query.homePage;
+
+    // Check if the homePage query parameter is provided
+    if (!homePage) {
+        return res.status(400).json({ message: 'homePage parameter is required' });
+    }
+
     try {
-        const Barbershop = mongoose.connection.collection('cheonan_test');
-        const results = await Barbershop.find({}).toArray();
-        res.json(results);
+        // Use Mongoose to find the barbershop by homePage
+        const barbershop = await Barbershop.findOne({ homePage: homePage });
+
+        if (!barbershop) {
+            return res.status(404).json({ message: 'Barbershop not found' });
+        }
+
+        res.json(barbershop);  // Return the barbershop data
     } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).send('Failed to retrieve data');
+        console.error('Error fetching barbershop:', error);
+        res.status(500).send('Failed to retrieve barbershop');
     }
 });
 
@@ -30,64 +41,41 @@ app.get('/barbershops', async (req, res) => {
 app.get('/barbershops/:id', async (req, res) => {
     try {
         const barbershopId = req.params.id;
-        const Barbershop = mongoose.connection.collection('cheonan_test');
-        const barbershop = await Barbershop.findOne({ _id: mongoose.Types.ObjectId(barbershopId) });
+
+        // Use Mongoose to find the barbershop by its _id
+        const barbershop = await Barbershop.findById(barbershopId);  // Mongoose handles ObjectId automatically
+
         if (!barbershop) {
             return res.status(404).json({ message: 'Barbershop not found' });
         }
+
         res.json(barbershop);
     } catch (error) {
-        console.error('Error fetching barbershop:============================>>>', error);
+        console.error('Error fetching barbershop:', error);
         res.status(500).send('Failed to retrieve barbershop');
     }
 });
 
-// Add a new microReview to a barbershop
-app.post('/barbershops/:id/review', async (req, res) => {
-    try {
-        const barbershopId = req.params.id;
-        const { microReview } = req.body; // Assuming the body contains the microReview field
-        const Barbershop = mongoose.connection.collection('cheonan_test');
+// Scrape Instagram images
+app.get('/barbershops/scrape', async (req, res) => {
+    const instagramUrl = req.query.url;
 
-        // Find and update the barbershop with the new microReview
-        const result = await Barbershop.updateOne(
-            { _id: mongoose.Types.ObjectId(barbershopId) },
-            { $push: { microReview: microReview } } // Push the new review to the list
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: 'Barbershop not found' });
-        }
-
-        res.json({ message: 'Review added successfully' });
-    } catch (error) {
-        console.error('Error adding review:', error);
-        res.status(500).send('Failed to add review');
+    if (!instagramUrl) {
+        return res.status(400).json({ message: 'URL parameter is required' });
     }
-});
 
-
-// Route to get Instagram images for a barbershop
-app.get('/barbershops/:id/photos', async (req, res) => {
     try {
-        const barbershopId = req.params.id;
-        const Barbershop = mongoose.connection.collection('cheonan_test');
-        const barbershop = await Barbershop.findOne({ _id: mongoose.Types.ObjectId(barbershopId) });
+        console.log('Scraping Instagram URL:', instagramUrl);
 
-        if (!barbershop || !barbershop.homePage) {
-            return res.status(404).json({ message: 'Barbershop not found or homepage not available' });
-        }
-
-        // Scrape the Instagram images from the homePage URL
-        const images = await scrapeInstagramImages(barbershop.homePage);
+        // Scrape the Instagram images from the provided URL
+        const images = await scrapeInstagramImages(instagramUrl);
 
         res.json(images); // Return the scraped image URLs
     } catch (error) {
-        console.error('Error fetching photos:=========================>>', error);
+        console.error('Error fetching photos: ', error);
         res.status(500).send('Failed to fetch photos');
     }
 });
-
 
 // Listen on the specified port
 const PORT = process.env.PORT || 3000;

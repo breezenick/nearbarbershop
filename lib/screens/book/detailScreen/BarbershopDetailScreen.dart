@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/barbershop.dart';
+import 'PhotoTab.dart';
 import 'PriceTab.dart';
 import 'ReviewTab.dart';
 
@@ -69,8 +70,9 @@ class BarbershopDetailScreen extends StatelessWidget {
               ReviewTab( contextList: 'barbershop', microReviewList: barbershop.microReview, barbershopId: '',),
 
 
-              // Photo Tab
-              PhotoTab(barbershop: barbershop),
+              PhotoTab(
+                homePage: barbershop.homePage ?? '',
+              ),
             ],
           ),
         ),
@@ -82,16 +84,4 @@ class BarbershopDetailScreen extends StatelessWidget {
 
 
 
-// PhotoTab Widget
-class PhotoTab extends StatelessWidget {
-  final Barbershop barbershop;
 
-  PhotoTab({required this.barbershop});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Photos Section for ${barbershop.name}'),
-    );
-  }
-}
