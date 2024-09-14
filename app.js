@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const { scrapeInstagramImages } = require('./scraper');
-//const Barbershop = require('./barbershop'); // Import the Barbershop model
+const Barbershop = require('./barbershop'); // Import the Barbershop model
 
 const app = express();
 
@@ -47,19 +47,24 @@ app.get('/barbershops/:id', async (req, res) => {
     }
 });
 
-// Scrape Instagram images
-app.get('/barbershops/scrape', async (req, res) => {
-    const instagramUrl = req.query.url;
 
-    if (!instagramUrl) {
+// Scrape Instagram images if the homePage is from Instagram
+app.get('/barbershops/scrape', async (req, res) => {
+    const homePageUrl = req.query.url;
+
+    if (!homePageUrl) {
         return res.status(400).json({ message: 'URL parameter is required' });
     }
 
+    if (!homePageUrl.includes('instagram.com')) {
+        return res.status(400).json({ message: 'Only Instagram URLs are supported' });
+    }
+
     try {
-        console.log('Scraping Instagram URL:', instagramUrl);
+        console.log('Scraping Instagram URL:', homePageUrl);
 
         // Scrape the Instagram images from the provided URL
-        const images = await scrapeInstagramImages(instagramUrl);
+        const images = await scrapeInstagramImages(homePageUrl);
 
         res.json(images); // Return the scraped image URLs
     } catch (error) {
@@ -67,6 +72,7 @@ app.get('/barbershops/scrape', async (req, res) => {
         res.status(500).send('Failed to fetch photos');
     }
 });
+
 
 // Listen on the specified port
 const PORT = process.env.PORT || 3000;
