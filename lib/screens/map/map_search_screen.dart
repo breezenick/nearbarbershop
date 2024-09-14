@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../models/barbershop.dart';
 import '../../services/api_service.dart';
+import '../book/detailScreen/BarbershopDetailScreen.dart';
 import 'BarbershopListScreen.dart';
 
 class MapSearchScreen extends StatefulWidget {
@@ -279,11 +280,21 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                     itemBuilder: (BuildContext context, int index) {
                       Barbershop shop = _barbershops[index];
                       return GestureDetector(
-                        onTap: () {
+                       /* onTap: () {
                           var newPosition = NLatLng(shop.y ?? 0.0, shop.x ?? 0.0);
                           _mapController?.updateCamera(NCameraUpdate.fromCameraPosition(
                             NCameraPosition(target: newPosition, zoom: 17),
                           ));
+                        },*/
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BarbershopDetailScreen(
+                                barbershop: shop,
+                              ),
+                            ),
+                          );
                         },
                         child: Transform.scale(
                           scale: index == _currentIndex ? 1 : 0.9,

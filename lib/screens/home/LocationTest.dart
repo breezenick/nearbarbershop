@@ -10,7 +10,7 @@ import 'dart:math' as math;
 import '../../models/barbershop.dart';
 import '../../utils/places_notifier2.dart';
 import '../../utils/providers_home.dart';
-import '../book/BarbershopDetailScreen.dart';
+import '../book/detailScreen/BarbershopDetailScreen.dart';
 
 class LocationTest extends ConsumerWidget {
   const LocationTest({flutter.Key? key}) : super(key: key);
@@ -82,7 +82,7 @@ class LocationTest extends ConsumerWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => BarbershopDetailScreen(
-                                  id: shop.id,
+                                  barbershop: shop,
                                 ),
                               ),
                             );

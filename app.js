@@ -9,18 +9,58 @@ app.use(express.json());
 
 // Root URL route
 app.get('/', (req, res) => {
-    res.send('★★★★★ Welcome to the  MongoDB API ★★★★★');
+    res.send('★★★★★ Welcome to the MongoDB API ★★★★★');
 });
 
-// Define routes
+// Fetch all barbershops
 app.get('/barbershops', async (req, res) => {
     try {
-        const Barbershop = mongoose.connection.collection('cheonan_test'); // Access the correct collection
-        const results = await Barbershop.find({}).toArray(); // Fetch all documents from the collection
+        const Barbershop = mongoose.connection.collection('cheonan_test');
+        const results = await Barbershop.find({}).toArray();
         res.json(results);
     } catch (error) {
         console.error('Error fetching data:', error);
         res.status(500).send('Failed to retrieve data');
+    }
+});
+
+// Fetch a specific barbershop by ID
+app.get('/barbershops/:id', async (req, res) => {
+    try {
+        const barbershopId = req.params.id;
+        const Barbershop = mongoose.connection.collection('cheonan_test');
+        const barbershop = await Barbershop.findOne({ _id: mongoose.Types.ObjectId(barbershopId) });
+        if (!barbershop) {
+            return res.status(404).json({ message: 'Barbershop not found' });
+        }
+        res.json(barbershop);
+    } catch (error) {
+        console.error('Error fetching barbershop:', error);
+        res.status(500).send('Failed to retrieve barbershop');
+    }
+});
+
+// Add a new microReview to a barbershop
+app.post('/barbershops/:id/review', async (req, res) => {
+    try {
+        const barbershopId = req.params.id;
+        const { microReview } = req.body; // Assuming the body contains the microReview field
+        const Barbershop = mongoose.connection.collection('cheonan_test');
+
+        // Find and update the barbershop with the new microReview
+        const result = await Barbershop.updateOne(
+            { _id: mongoose.Types.ObjectId(barbershopId) },
+            { $push: { microReview: microReview } } // Push the new review to the list
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ message: 'Barbershop not found' });
+        }
+
+        res.json({ message: 'Review added successfully' });
+    } catch (error) {
+        console.error('Error adding review:', error);
+        res.status(500).send('Failed to add review');
     }
 });
 

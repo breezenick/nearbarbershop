@@ -15,6 +15,10 @@ class Barbershop {
   final String? tel;
   final String? thumUrl;
   final String? bizhourInfo;
+  final String? menuInfo;
+  final List<String>? context;
+  final List<String>? microReview;
+
 
   Barbershop({
     this.id,
@@ -25,6 +29,9 @@ class Barbershop {
     this.tel,
     this.thumUrl,
     this.bizhourInfo,
+    this.menuInfo,
+    this.context,
+    this.microReview,
   });
 
   // Method to `fromJson` is useful for decoding an instance of `Barbershop` from a map

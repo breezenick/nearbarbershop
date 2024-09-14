@@ -5,7 +5,7 @@ import '../../services/api_service.dart';
 import 'dart:math' as math;
 import 'dart:developer' as developer;
 
-import '../book/BarbershopDetailScreen.dart';
+import '../book/detailScreen/BarbershopDetailScreen.dart';
 
 class BarbershopListScreen extends StatefulWidget {
   const BarbershopListScreen({Key? key, required id}) : super(key: key);
@@ -161,7 +161,7 @@ class _BarbershopListScreenState extends State<BarbershopListScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => BarbershopDetailScreen(
-                                  id: shop.id,
+                                  barbershop: shop,
                                 ),
                               ),
                             );

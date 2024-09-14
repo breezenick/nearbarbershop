@@ -10,6 +10,13 @@ Barbershop _$BarbershopFromJson(Map<String, dynamic> json) => Barbershop(
       tel: json['tel'] as String? ?? 'No Phone',
       thumUrl: json['thumUrl'] as String? ?? 'No Image',
       bizhourInfo: json['bizhourInfo'] as String? ?? 'No Business Hours Info',
+      menuInfo: json['menuInfo'] as String? ?? 'No Menu Info',
+      context: (json['context'] is String)
+          ? (json['context'] as String).split(',') // Split by a comma or another delimiter if needed
+          : (json['context'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      microReview: (json['microReview'] is String)
+          ? (json['microReview'] as String).split(',') // Handle as a string if needed
+          : (json['microReview'] as List<dynamic>?)?.map((e) => e as String).toList(),
 );
 
 Map<String, dynamic> _$BarbershopToJson(Barbershop instance) =>
@@ -22,4 +29,8 @@ Map<String, dynamic> _$BarbershopToJson(Barbershop instance) =>
           'tel': instance.tel,
           'thumUrl': instance.thumUrl,
           'bizhourInfo': instance.bizhourInfo,
+          'menuInfo': instance.menuInfo,
+          'context': instance.context,
+          'microReview': instance.microReview,
+
     };
