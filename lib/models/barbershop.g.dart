@@ -17,6 +17,7 @@ Barbershop _$BarbershopFromJson(Map<String, dynamic> json) => Barbershop(
       microReview: (json['microReview'] is String)
           ? (json['microReview'] as String).split(',') // Handle as a string if needed
           : (json['microReview'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      homePage: json['homePage'] as String? ?? 'No Home Page',
 );
 
 Map<String, dynamic> _$BarbershopToJson(Barbershop instance) =>
@@ -32,5 +33,6 @@ Map<String, dynamic> _$BarbershopToJson(Barbershop instance) =>
           'menuInfo': instance.menuInfo,
           'context': instance.context,
           'microReview': instance.microReview,
+          'homePage': instance.homePage,
 
     };
