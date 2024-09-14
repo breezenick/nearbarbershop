@@ -13,29 +13,20 @@ app.get('/', (req, res) => {
     res.send('★★★★★ Welcome to the MongoDB API ★★★★★');
 });
 
-// Fetch all barbershops by homePage
+
+// Fetch all barbershops
 app.get('/barbershops', async (req, res) => {
-    const homePage = req.query.homePage;
-
-    // Check if the homePage query parameter is provided
-    if (!homePage) {
-        return res.status(400).json({ message: 'homePage parameter is required' });
-    }
-
     try {
-        // Use Mongoose to find the barbershop by homePage
-        const barbershop = await Barbershop.findOne({ homePage: homePage });
-
-        if (!barbershop) {
-            return res.status(404).json({ message: 'Barbershop not found' });
-        }
-
-        res.json(barbershop);  // Return the barbershop data
+        const Barbershop = mongoose.connection.collection('cheonan_test'); // Access the correct collection
+        const results = await Barbershop.find({}).toArray(); // Fetch all documents from the collection
+        res.json(results);
     } catch (error) {
-        console.error('Error fetching barbershop:', error);
-        res.status(500).send('Failed to retrieve barbershop');
+        console.error('Error fetching data:', error);
+        res.status(500).send('Failed to retrieve data');
     }
 });
+
+
 
 // Fetch a specific barbershop by ID
 app.get('/barbershops/:id', async (req, res) => {
