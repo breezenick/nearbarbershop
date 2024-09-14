@@ -68,7 +68,7 @@ app.get('/barbershops/scrape', async (req, res) => {
 
         res.json(images); // Return the scraped image URLs
     } catch (error) {
-        console.error('Error fetching photos: ', error);
+        console.error('Error fetching photos:====================>> ', error);
         res.status(500).send('Failed to fetch photos');
     }
 });
