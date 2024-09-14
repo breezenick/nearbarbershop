@@ -14,3 +14,5 @@ async function scrapeInstagramImages(homePageUrl) {
   await browser.close();
   return imageUrls;
 }
+
+module.exports = { scrapeInstagramImages };
