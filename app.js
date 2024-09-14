@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const { scrapeInstagramImages } = require('./scraper');
-const Barbershop = require('./models/barbershop'); // Import the Barbershop model
+//const Barbershop = require('./barbershop'); // Import the Barbershop model
 
 const app = express();
 
