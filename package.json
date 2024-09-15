@@ -8,8 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "start": "node app.js",
-    "postinstall": "puppeteer install"
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
