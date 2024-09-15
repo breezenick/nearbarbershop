@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PhotoTab extends StatelessWidget {
-  final String homePage;  // The Instagram URL
+  final String homePage;
 
   PhotoTab({required this.homePage});
 
@@ -12,10 +13,23 @@ class PhotoTab extends StatelessWidget {
         Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage')
     );
 
+    print('Response Status Code:===================== ${response.statusCode}');
+    print('Response Body:============================  ${response.body}');  // Check the response body
+
+
     if (response.statusCode == 200) {
-      List<String> photos = List<String>.from(json.decode(response.body));
-      print(photos);  // Print the scraped photo URLs
-      return photos;
+      var jsonResponse = json.decode(response.body);
+      print('Parsed JSON:============================ $jsonResponse');  // Print the parsed JSON
+
+      // Check if the response is a List of photos and return it
+      if (jsonResponse is List) {
+        List<String> photos = List<String>.from(jsonResponse);
+        print('Photos:================================= $photos');  // Check the extracted photos
+        return photos;
+      } else {
+        print('Unexpected response format');
+        return [];
+      }
     } else {
       throw Exception('Failed to load Instagram photos');
     }
@@ -34,16 +48,21 @@ class PhotoTab extends StatelessWidget {
           return Center(child: Text('No photos available'));
         } else {
           return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // Number of columns in the grid
+            ),
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
               String imageUrl = snapshot.data![index];
               if (imageUrl != null && imageUrl.startsWith('http')) {
-                return Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
-                  return Image.asset('assets/barbershop02.jpg');  // Show a placeholder on error
-                });
+                return CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  placeholder: (context, url) => Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) => Icon(Icons.error),  // Show an error icon if the image fails to load
+                  fit: BoxFit.cover,  // Adjust the image to cover the grid item
+                );
               } else {
-                return Image.asset('assets/barbershop03.jpg');  // Show a placeholder for invalid URLs
+                return Image.asset('assets/google_logo.png');  // Show a placeholder for invalid URLs
               }
             },
           );

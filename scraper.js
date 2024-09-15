@@ -11,13 +11,14 @@ async function scrapeInstagramPhotos(instagramUrl) {
       args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',  // Disable /dev/shm usage to avoid memory issues in Docker containers
-          '--disable-accelerated-2d-canvas',
-          '--disable-gpu'
         ]
       });
 
   const page = await browser.newPage();
+
+    // Set a user-agent to avoid bot detection
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+
 
   // Navigate to the Instagram page using Puppeteer
   await page.goto(instagramUrl, { waitUntil: 'domcontentloaded' });
