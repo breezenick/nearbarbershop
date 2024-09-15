@@ -12,7 +12,7 @@ class PhotoTab extends StatelessWidget {
     final response = await http.get(
         Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage')
     );
-
+    print('Request URL:============================== ${response.request!.url}');  // Check the request URL
     print('Response Status Code:===================== ${response.statusCode}');
     print('Response Body:============================  ${response.body}');  // Check the response body
 
