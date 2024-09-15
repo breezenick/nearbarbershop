@@ -43,7 +43,7 @@ app.get('/barbershops/scrape', async (req, res) => {
         console.log('Scraping Instagram URL:', homePageUrl);
 
         // Scrape the Instagram images from the provided URL
-        const images = await scrapeInstagramImages(homePageUrl);
+        const images = await scrapeInstagramPhotos(homePageUrl);
 
         res.json(images); // Return the scraped image URLs
     } catch (error) {
