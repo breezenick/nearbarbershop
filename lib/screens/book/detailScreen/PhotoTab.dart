@@ -1,25 +1,23 @@
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
 
 class PhotoTab extends StatelessWidget {
-  final String homePage; // Now this is homePage instead of instagramUrl
+  final String homePage;  // The Instagram URL
 
   PhotoTab({required this.homePage});
 
   Future<List<String>> fetchInstagramPhotos() async {
-    if (!homePage.contains("instagram.com")) {
-      throw Exception("Invalid Instagram URL");
-    }
-
-    final response = await http.get(Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage'));
+    final response = await http.get(
+        Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage')
+    );
 
     if (response.statusCode == 200) {
-      List<dynamic> photos = json.decode(response.body);
-      print('Photos:=====================>>>  $photos');
-      return photos.cast<String>();
+      List<String> photos = List<String>.from(json.decode(response.body));
+      print(photos);  // Print the scraped photo URLs
+      return photos;
     } else {
-      throw Exception('Failed to load photos');
+      throw Exception('Failed to load Instagram photos');
     }
   }
 
@@ -36,12 +34,17 @@ class PhotoTab extends StatelessWidget {
           return Center(child: Text('No photos available'));
         } else {
           return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
-              return Image.network(snapshot.data![index]);
+              String imageUrl = snapshot.data![index];
+              if (imageUrl != null && imageUrl.startsWith('http')) {
+                return Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/barbershop02.jpg');  // Show a placeholder on error
+                });
+              } else {
+                return Image.asset('assets/barbershop03.jpg');  // Show a placeholder for invalid URLs
+              }
             },
           );
         }
