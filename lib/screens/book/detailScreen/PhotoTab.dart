@@ -1,73 +1,130 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:cached_network_image/cached_network_image.dart';
+import 'PhotoViewGalleryScreen.dart';
 
-class PhotoTab extends StatelessWidget {
-  final String homePage;
+class PhotoTab extends StatefulWidget {
+  final String shopName;  // The shop name (or shop ID) passed from BarbershopDetailScreen
 
-  PhotoTab({required this.homePage});
+  PhotoTab({required this.shopName});
 
-  Future<List<String>> fetchInstagramPhotos() async {
-    final response = await http.get(
-        Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage')
-    );
-    print('Request URL:============================== ${response.request!.url}');  // Check the request URL
-    print('Response Status Code:===================== ${response.statusCode}');
-    print('Response Body:============================  ${response.body}');  // Check the response body
+  @override
+  _PhotoTabState createState() => _PhotoTabState();
+}
 
+class _PhotoTabState extends State<PhotoTab> {
+  final picker = ImagePicker();
+  List<Map<String, String>> _images = []; // List of image paths with shop names
 
-    if (response.statusCode == 200) {
-      var jsonResponse = json.decode(response.body);
-      print('Parsed JSON:============================ $jsonResponse');  // Print the parsed JSON
+  @override
+  void initState() {
+    super.initState();
+    _loadImagePaths();  // Load saved images with shop names
+  }
 
-      // Check if the response is a List of photos and return it
-      if (jsonResponse is List) {
-        List<String> photos = List<String>.from(jsonResponse);
-        print('Photos:================================= $photos');  // Check the extracted photos
-        return photos;
-      } else {
-        print('Unexpected response format');
-        return [];
-      }
+  // Pick an image and associate it with the current shop name
+  Future<void> getImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      setState(() {
+        _images.add({
+          'path': pickedFile.path,
+          'shop': widget.shopName,  // Save the shop name with the image
+        });
+      });
+      _saveImagePaths();  // Save the image paths to SharedPreferences
     } else {
-      throw Exception('Failed to load Instagram photos');
+      print('No image selected.');
     }
+  }
+
+  // Save the list of image paths and shop names in SharedPreferences
+  Future<void> _saveImagePaths() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Get existing images from SharedPreferences and merge
+    String? savedImagePathsJson = prefs.getString('imagePaths');
+    List<Map<String, String>> existingData = [];
+    if (savedImagePathsJson != null) {
+      existingData = List<Map<String, String>>.from(
+          jsonDecode(savedImagePathsJson).map((item) => Map<String, String>.from(item))
+      );
+    }
+
+    // Merge new images with the existing data
+    existingData.addAll(_images);
+    await prefs.setString('imagePaths', jsonEncode(existingData));
+  }
+
+  // Load the list of image paths and shop names from SharedPreferences
+  Future<void> _loadImagePaths() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? imagePathsJson = prefs.getString('imagePaths');
+    if (imagePathsJson != null) {
+      setState(() {
+        _images = List<Map<String, String>>.from(
+            jsonDecode(imagePathsJson).map((item) => Map<String, String>.from(item))
+        );
+      });
+    }
+  }
+
+  // Filter images based on the current shop name
+  List<File> _getImagesForCurrentShop() {
+    return _images
+        .where((image) => image['shop'] == widget.shopName)  // Filter by shop name
+        .map((image) => File(image['path']!))  // Convert path from Map to File
+        .toList();
+  }
+
+  // Open zoomable gallery when an image is tapped
+  void _openImageGallery(int initialIndex, List<File> images) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PhotoViewGalleryScreen(
+          images: images,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<String>>(
-      future: fetchInstagramPhotos(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No photos available'));
-        } else {
-          return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // Number of columns in the grid
-            ),
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              String imageUrl = snapshot.data![index];
-              if (imageUrl != null && imageUrl.startsWith('http')) {
-                return CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-                  errorWidget: (context, url, error) => Icon(Icons.error),  // Show an error icon if the image fails to load
-                  fit: BoxFit.cover,  // Adjust the image to cover the grid item
-                );
-              } else {
-                return Image.asset('assets/google_logo.png');  // Show a placeholder for invalid URLs
-              }
+    List<File> shopImages = _getImagesForCurrentShop();  // Get images for the current shop
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Photos for ${widget.shopName}'),
+      ),
+      body: shopImages.isEmpty
+          ? Center(child: Text('No images for ${widget.shopName}.'))
+          : GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,  // Adjust to show 2 images per row
+        ),
+        itemCount: shopImages.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {
+              _openImageGallery(index, shopImages);  // Open zoomable gallery
             },
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Image.file(shopImages[index]),  // Display each image
+            ),
           );
-        }
-      },
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: getImage,
+        tooltip: 'Take Picture',
+        child: Icon(Icons.camera_alt),
+      ),
     );
   }
 }

@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+void main() async {
+  // Ensure Flutter engine is initialized before any async operations
+  WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize SharedPreferences (if you need it at the start of the app)
+  SharedPreferences prefs = await SharedPreferences.getInstance();
 
-
-void main() {
+  // After initialization, run the app within ProviderScope
   runApp(
     const ProviderScope(
       child: MyApp(),
     ),
   );
 }
-
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

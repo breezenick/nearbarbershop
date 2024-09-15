@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
-const { scrapeInstagramPhotos } = require('./scraper');
+
 
 const app = express();
 
@@ -22,33 +22,6 @@ app.get('/barbershops', async (req, res) => {
     } catch (error) {
         console.error('Error fetching data:', error);
         res.status(500).send('Failed to retrieve data');
-    }
-});
-
-
-
-// Scrape Instagram images if the homePage is from Instagram
-app.get('/barbershops/scrape', async (req, res) => {
-    const homePageUrl = req.query.url;
-
-    if (!homePageUrl) {
-        return res.status(400).json({ message: 'URL parameter is required' });
-    }
-
-    if (!homePageUrl.includes('instagram.com')) {
-        return res.status(400).json({ message: 'Only Instagram URLs are supported' });
-    }
-
-    try {
-        console.log('Scraping Instagram URL:', homePageUrl);
-
-        // Scrape the Instagram images from the provided URL
-        const images = await scrapeInstagramPhotos(homePageUrl);
-
-        res.json(images); // Return the scraped image URLs
-    } catch (error) {
-        console.error('Error fetching photos:====================>> ', error);
-        res.status(500).send('Failed to fetch photos');
     }
 });
 

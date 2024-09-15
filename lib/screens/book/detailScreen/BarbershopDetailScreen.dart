@@ -70,11 +70,7 @@ class BarbershopDetailScreen extends StatelessWidget {
                // ReviewTab(barbershop: barbershop),
                 // Inside your BarbershopDetailScreen widget
                 ReviewTab( contextList: 'barbershop', microReviewList: barbershop.microReview, barbershopId: '',),
-
-
-                PhotoTab(
-                  homePage: barbershop.homePage ?? '',
-                ),
+                PhotoTab(shopName: barbershop.name ?? ''),
               ],
             ),
           ),
