@@ -1,7 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
-const { scrapeInstagramImages } = require('./scraper2');
+
+console.log('Importing scrapeInstagramPhotos++++++++++++++++++++++++++');
+
+const { scrapeInstagramPhotos } = require('./scraper');
+
 
 const app = express();
 
@@ -43,13 +47,11 @@ app.get('/barbershops/scrape', async (req, res) => {
         console.log('Scraping Instagram URL:', homePageUrl);
 
         // Scrape the Instagram images from the provided URL
-        const images = await scrapeInstagramPhotos(homePageUrl);
+        const  images = await scrapeInstagramPhotos(homePageUrl);
 
-        console.log('Scraped homePageUrl:', homePageUrl); //
+        console.log('Scraped homePageUrl:=====================>>>', homePageUrl); //
 
-
-        console.log('Scraped images:', images); //
-
+        console.log('Scraped images:==========================>>>', images); //
 
         res.json(images); // Return the scraped image URLs
     } catch (error) {

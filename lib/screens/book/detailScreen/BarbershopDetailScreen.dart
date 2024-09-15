@@ -72,9 +72,12 @@ class BarbershopDetailScreen extends StatelessWidget {
                 ReviewTab( contextList: 'barbershop', microReviewList: barbershop.microReview, barbershopId: '',),
 
 
-                PhotoTab(
+              /*  PhotoTab(
                   homePage: (barbershop.homePage is List<String>) ? barbershop.homePage as List<String> : [],  // Cast and provide default
-                ),
+                ),*/
+              // Assuming BarbershopDetailScreen passes 'homePage' correctly to PhotoTab
+                PhotoTab(homePage: barbershop.homePage ?? '')
+
 
               ],
             ),
