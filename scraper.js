@@ -8,8 +8,14 @@ async function scrapeInstagramPhotos(instagramUrl) {
   // Launch Puppeteer with proper configuration
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
+      args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',  // Disable /dev/shm usage to avoid memory issues in Docker containers
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu'
+        ]
+      });
 
   const page = await browser.newPage();
 
