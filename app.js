@@ -45,6 +45,12 @@ app.get('/barbershops/scrape', async (req, res) => {
         // Scrape the Instagram images from the provided URL
         const images = await scrapeInstagramPhotos(homePageUrl);
 
+        console.log('Scraped homePageUrl:', homePageUrl); //
+
+
+        console.log('Scraped images:', images); //
+
+
         res.json(images); // Return the scraped image URLs
     } catch (error) {
         console.error('Error fetching photos:====================>> ', error);

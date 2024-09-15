@@ -10,6 +10,8 @@ class PhotoTab extends StatelessWidget {
   Future<List<String>> fetchInstagramPhotos(String homePage) async {
     final response = await http.get(Uri.parse(
         'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/scrape?url=$homePage'));
+    print('Response:=====================>>>  $response');
+
 
     if (response.statusCode == 200) {
       List<dynamic> photos = json.decode(response.body);
@@ -35,7 +37,6 @@ class PhotoTab extends StatelessWidget {
     }
   }*/
 
-  @override
   @override
   Widget build(BuildContext context) {
     return GridView.builder(

@@ -1,9 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-async function scrapeInstagramPhotos(instagramUrl) {
+async function scrapeInstagramPhotos(homePageUrl) {
   try {
-    const { data } = await axios.get(instagramUrl); // Fetch the Instagram page HTML
+    const { data } = await axios.get(homePageUrl); // Fetch the Instagram page HTML
     const $ = cheerio.load(data); // Load the HTML into cheerio
 
     // Extract all image URLs from <img> tags
