@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
-const { scrapeInstagramImages } = require('./scraper');
+const { scrapeInstagramImages } = require('./scraper2');
 
 const app = express();
 

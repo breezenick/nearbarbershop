@@ -73,8 +73,9 @@ class BarbershopDetailScreen extends StatelessWidget {
 
 
                 PhotoTab(
-                  homePage: barbershop.homePage ?? '',
+                  homePage: (barbershop.homePage is List<String>) ? barbershop.homePage as List<String> : [],  // Cast and provide default
                 ),
+
               ],
             ),
           ),
