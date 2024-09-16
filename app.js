@@ -25,7 +25,6 @@ app.get('/barbershops', async (req, res) => {
     }
 });
 
-ure you have a Barbershop model
 
 // Route to handle adding a review
 app.post('/barbershops/:id/add-review', async (req, res) => {
