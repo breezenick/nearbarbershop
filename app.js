@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
-
-
 const app = express();
 
 app.use(cors());
@@ -23,6 +21,27 @@ app.get('/barbershops', async (req, res) => {
         console.error('Error fetching data:', error);
         res.status(500).send('Failed to retrieve data');
     }
+});
+
+
+
+app.get('/barbershops/:id/reviews', async (req, res) => {
+  try {
+    const barbershopId = req.params.id;
+    const Barbershop = mongoose.connection.collection('cheonan_test');
+
+    // Fetch the reviews field for the barbershop with the given ID
+    const barbershop = await Barbershop.findOne({ _id: mongoose.Types.ObjectId(barbershopId) });
+
+    if (!barbershop || !barbershop.reviews) {
+      return res.status(404).json({ message: 'No reviews found' });
+    }
+
+    res.json(barbershop.reviews);  // Return the reviews array
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).send('Failed to retrieve reviews');
+  }
 });
 
 

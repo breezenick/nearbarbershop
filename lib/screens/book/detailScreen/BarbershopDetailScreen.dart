@@ -6,8 +6,9 @@ import 'ReviewTab.dart';
 
 class BarbershopDetailScreen extends StatelessWidget {
   final Barbershop barbershop;
+  final int? barbershopId;  // Add this
 
-  BarbershopDetailScreen({required this.barbershop});
+  BarbershopDetailScreen({required this.barbershop, this.barbershopId});  // Add this
 
   @override
   Widget build(BuildContext context) {
@@ -62,14 +63,11 @@ class BarbershopDetailScreen extends StatelessWidget {
               children: [
                 // Home Tab
                 Center(child: Text('Welcome to ${barbershop.name ?? ''}')),
-
                 // Price Tab
                 PriceTab(menuInfo: barbershop.menuInfo),
 
-                // Review Tab
-               // ReviewTab(barbershop: barbershop),
-                // Inside your BarbershopDetailScreen widget
-                ReviewTab( contextList: 'barbershop', microReviewList: barbershop.microReview, barbershopId: '',),
+                ReviewTab( barbershopId: barbershopId),  // Pass the barbers
+
                 PhotoTab(shopName: barbershop.name ?? ''),
               ],
             ),

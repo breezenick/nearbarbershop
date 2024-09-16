@@ -292,6 +292,8 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                             MaterialPageRoute(
                               builder: (_) => BarbershopDetailScreen(
                                 barbershop: shop,
+                                  barbershopId: shop.id,
+
                               ),
                             ),
                           );
