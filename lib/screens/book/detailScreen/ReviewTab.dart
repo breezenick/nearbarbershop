@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -17,9 +18,12 @@ class _ReviewTabState extends State<ReviewTab> {
 
   // Function to submit a review to the backend (POST request)
   Future<void> submitReview() async {
-    if(widget.barbershopId == null) {
+    String userId;
+    try {
+      userId = await getCurrentUserId(); // Get the current user's ID
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Barbershop ID is not provided")),
+        SnackBar(content: Text("User not logged in")),
       );
       return;
     }
@@ -30,7 +34,7 @@ class _ReviewTabState extends State<ReviewTab> {
       body: jsonEncode({
         "rating": int.parse(_ratingController.text),
         "comment": _reviewController.text,
-        "user": "User123",  // Adjust this to the actual user ID as necessary
+        "user": userId,
       }),
     );
 
@@ -76,5 +80,15 @@ class _ReviewTabState extends State<ReviewTab> {
         ),
       ),
     );
+  }
+}
+
+
+Future<String> getCurrentUserId() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    return user.uid; // Firebase User ID
+  } else {
+    throw Exception('No user logged in');
   }
 }

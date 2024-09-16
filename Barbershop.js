@@ -8,17 +8,13 @@ const reviewSchema = new mongoose.Schema({
 });
 
 const barbershopSchema = new mongoose.Schema({
-  id: Number,  // Custom ID field
+  id: { type: Number, required: true, unique: true, index: true },  // Ensure the custom ID is indexed and unique
   name: String,
-  reviews: [{
-    rating: Number,
-    comment: String,
-    user: String,
-    date: { type: Date, default: Date.now }
-  }]
+  reviews: [reviewSchema]  // Using the defined reviewSchema
+}, {
+  _id: false,  // Disable automatic _id generation if you're using a custom `id`
+  id: true    // This line is actually not needed, as `id` is already defined as part of the schema
 });
-barbershopSchema.set('id', false);
-barbershopSchema.set('_id', false);
 
 const Barbershop = mongoose.model('Barbershop', barbershopSchema);
 
