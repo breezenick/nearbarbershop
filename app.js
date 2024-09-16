@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
+const Barbershop = require('./Barbershop');
+
 const app = express();
 
 app.use(cors());
@@ -25,19 +27,20 @@ app.get('/barbershops', async (req, res) => {
 
 
 
+
+
 app.get('/barbershops/:id/reviews', async (req, res) => {
   try {
-    const barbershopId = req.params.id;
-    const Barbershop = mongoose.connection.collection('cheonan_test');
+    const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
 
-    // Fetch the reviews field for the barbershop with the given ID
-    const barbershop = await Barbershop.findOne({ _id: mongoose.Types.ObjectId(barbershopId) });
+    // Query using a numerical ID or string ID, not as an ObjectId
+    const barbershop = await Barbershop.findOne({ id: id });
 
     if (!barbershop || !barbershop.reviews) {
-      return res.status(404).json({ message: 'No reviews found' });
+      return res.status(404).json({ message: 'Failed to retrieve barbershop' });
     }
 
-    res.json(barbershop.reviews);  // Return the reviews array
+    res.json(barbershop.reviews);
   } catch (error) {
     console.error('Error fetching reviews:', error);
     res.status(500).send('Failed to retrieve reviews');
@@ -45,24 +48,10 @@ app.get('/barbershops/:id/reviews', async (req, res) => {
 });
 
 
-// Fetch a specific barbershop by ID
-app.get('/barbershops/:id', async (req, res) => {
-    try {
-        const barbershopId = req.params.id;
 
-        // Use Mongoose to find the barbershop by its _id
-        const barbershop = await Barbershop.findById(barbershopId);  // Mongoose handles ObjectId automatically
 
-        if (!barbershop) {
-            return res.status(404).json({ message: 'Barbershop not found' });
-        }
 
-        res.json(barbershop);
-    } catch (error) {
-        console.error('Error fetching barbershop:', error);
-        res.status(500).send('Failed to retrieve barbershop');
-    }
-});
+
 
 
 

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
-
-
-
 
 class ReviewTab extends StatefulWidget {
   final int? barbershopId;
@@ -22,11 +18,10 @@ class _ReviewTabState extends State<ReviewTab> {
   // Function to fetch reviews from the backend (GET request)
   Future<List<dynamic>> fetchReviews() async {
     final response = await http.get(
-      Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/cheonan/reviews'),
+      Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/reviews'),
     );
     if (response.statusCode == 200) {
-      List<dynamic> reviews = jsonDecode(response.body);
-      return reviews;
+      return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load reviews');
     }
@@ -34,42 +29,23 @@ class _ReviewTabState extends State<ReviewTab> {
 
   // Function to submit a review to the backend (POST request)
   Future<void> submitReview() async {
-    final user = FirebaseAuth.instance.currentUser;
-    final googleUserId = user?.uid;
+    final response = await http.post(
+      Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-review'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "rating": int.parse(_ratingController.text),
+        "comment": _reviewController.text,
+        "user": "User123",  // Adjust as necessary to include user context
+      }),
+    );
 
-    if (widget.barbershopId != null) {
-      try {
-        final response = await http.post(
-          Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/api/cheonan/review'),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({
-            "review": _reviewController.text,
-            "rating": _ratingController.text,
-            "user": googleUserId ?? "Unknown User",
-            "barbershopId": widget.barbershopId
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Review submitted successfully')),
-          );
-          _reviewController.clear();
-          _ratingController.clear();
-          setState(() {}); // Refresh reviews after submission
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to submit review')),
-          );
-        }
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $error')),
-        );
-      }
+    if (response.statusCode == 200) {
+      _reviewController.clear();
+      _ratingController.clear();
+      setState(() {}); // Refresh the review list
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Barbershop ID is missing')),
+          SnackBar(content: Text('Failed to submit review: ${response.body}'))
       );
     }
   }
@@ -84,37 +60,43 @@ class _ReviewTabState extends State<ReviewTab> {
         future: fetchReviews(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return CircularProgressIndicator();
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error loading reviews'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            // Show "No reviews" message and the "Submit Review" button if there are no reviews
+            return Center(child: Text("Failed to load reviews"));
+          } else if (snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('No reviews available. Be the first to submit!'),
+                  Text('No reviews yet.'),
                   SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      _showSubmitReviewDialog(context); // Show the submit review dialog
-                    },
-                    child: Text('Submit Review'),
+                    onPressed: () => _showSubmitReviewDialog(),
+                    child: Text('Add Review'),
                   ),
                 ],
               ),
             );
           } else {
-            // If there are reviews, display them in a list
-            final reviews = snapshot.data!;
-            return ListView.builder(
-              itemCount: reviews.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(reviews[index]['comment'] ?? 'No comment'),
-                  subtitle: Text('Rating: ${reviews[index]['rating'] ?? 'N/A'}'),
-                );
-              },
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      var review = snapshot.data![index];
+                      return ListTile(
+                        title: Text(review['comment']),
+                        subtitle: Text('Rating: ${review['rating']} - ${review['user']}'),
+                      );
+                    },
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => _showSubmitReviewDialog(),
+                  child: Text('Add Review'),
+                ),
+              ],
             );
           }
         },
@@ -122,8 +104,7 @@ class _ReviewTabState extends State<ReviewTab> {
     );
   }
 
-  // Function to show a dialog for submitting a review
-  void _showSubmitReviewDialog(BuildContext context) {
+  void _showSubmitReviewDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -147,8 +128,8 @@ class _ReviewTabState extends State<ReviewTab> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                submitReview(); // Call the submit review function
-                Navigator.of(context).pop(); // Close the dialog
+                submitReview();
+                Navigator.of(context).pop();
               },
               child: Text('Submit'),
             ),

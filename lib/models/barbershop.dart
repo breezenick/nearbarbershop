@@ -7,7 +7,7 @@ part 'barbershop.g.dart';
 
 @JsonSerializable()
 class Barbershop {
-  final int? id;
+  final int id;
   final String? name;
   final String? address;
   final double? x; // latitude
@@ -22,8 +22,8 @@ class Barbershop {
 
 
 
-  Barbershop( {
-    this.id,
+  Barbershop(  {
+    required this.id,
     this.name,
     this.address,
     this.x,

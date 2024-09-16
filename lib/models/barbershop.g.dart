@@ -2,7 +2,7 @@ part of 'barbershop.dart';
 
 
 Barbershop _$BarbershopFromJson(Map<String, dynamic> json) => Barbershop(
-      id: (json['id'] as num?)?.toInt(),
+      id: json['id'] as int,
       name: json['name'] as String? ?? 'Unknown',
       address: json['address'] as String? ?? 'No Address',
       x: (json['x'] as num?)?.toDouble(),
@@ -22,7 +22,7 @@ Barbershop _$BarbershopFromJson(Map<String, dynamic> json) => Barbershop(
 
 Map<String, dynamic> _$BarbershopToJson(Barbershop instance) =>
     <String, dynamic>{
-          'id': instance.id,
+          'id' : instance.id,
           'name': instance.name,
           'address': instance.address,
           'x': instance.x,

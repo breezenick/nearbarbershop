@@ -6,9 +6,9 @@ import 'ReviewTab.dart';
 
 class BarbershopDetailScreen extends StatelessWidget {
   final Barbershop barbershop;
-  final int? barbershopId;  // Add this
 
-  BarbershopDetailScreen({required this.barbershop, this.barbershopId});  // Add this
+  // No need for barbershopId field, it is already in the Barbershop object
+  BarbershopDetailScreen({required this.barbershop});
 
   @override
   Widget build(BuildContext context) {
@@ -63,11 +63,14 @@ class BarbershopDetailScreen extends StatelessWidget {
               children: [
                 // Home Tab
                 Center(child: Text('Welcome to ${barbershop.name ?? ''}')),
+
                 // Price Tab
                 PriceTab(menuInfo: barbershop.menuInfo),
 
-                ReviewTab( barbershopId: barbershopId),  // Pass the barbers
+                // Pass the Barbershop ID to the ReviewTab
+                ReviewTab(barbershopId: barbershop.id),  // Use the ID from the Barbershop object
 
+                // Photo Tab
                 PhotoTab(shopName: barbershop.name ?? ''),
               ],
             ),
@@ -77,8 +80,3 @@ class BarbershopDetailScreen extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

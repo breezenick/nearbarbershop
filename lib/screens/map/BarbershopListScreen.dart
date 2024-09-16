@@ -162,7 +162,7 @@ class _BarbershopListScreenState extends State<BarbershopListScreen> {
                               MaterialPageRoute(
                                 builder: (_) => BarbershopDetailScreen(
                                   barbershop: shop,
-                                  barbershopId: shop.id,
+
 
                                 ),
                               ),
