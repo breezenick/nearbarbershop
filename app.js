@@ -48,10 +48,6 @@ app.post('/barbershops/:id/add-review', async (req, res) => {
     }
 });
 
-// Other necessary server setup like listening to a port
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 
 
 app.get('/barbershops/:id/reviews', async (req, res) => {
@@ -65,11 +61,7 @@ app.get('/barbershops/:id/reviews', async (req, res) => {
     if (!barbershop || !barbershop.reviews) {
       return res.status(404).json({ message: 'Failed to retrieve barbershop' });
     }
-
     res.json(barbershop.reviews);
-
-
-
   } catch (error) {
     console.error('Error fetching reviews:', error);
     res.status(500).send('Failed to retrieve reviews');
