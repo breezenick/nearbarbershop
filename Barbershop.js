@@ -17,6 +17,9 @@ const barbershopSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now }
   }]
 });
+barbershopSchema.set('id', false);
+barbershopSchema.set('_id', false);
+
 const Barbershop = mongoose.model('Barbershop', barbershopSchema);
 
 module.exports = Barbershop;

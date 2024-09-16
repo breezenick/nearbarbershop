@@ -58,14 +58,15 @@ class _ReviewTabState extends State<ReviewTab> {
         child: Column(
           children: <Widget>[
             TextField(
-              controller: _reviewController,
-              decoration: InputDecoration(labelText: 'Enter your review here'),
-            ),
-            TextField(
               controller: _ratingController,
               decoration: InputDecoration(labelText: 'Rating (1-5)'),
               keyboardType: TextInputType.number,
             ),
+            TextField(
+              controller: _reviewController,
+              decoration: InputDecoration(labelText: 'Enter your review here'),
+            ),
+
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: submitReview,

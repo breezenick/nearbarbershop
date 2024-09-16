@@ -25,20 +25,20 @@ app.get('/barbershops', async (req, res) => {
     }
 });
 
-
-// Route to handle adding a review
 app.post('/barbershops/:id/add-review', async (req, res) => {
-    const barbershopId = req.params.id;
-    const { rating, comment, user } = req.body;
+    const id = parseInt(req.params.id, 10); // Convert to integer if your ID is numerical
 
     try {
-        const barbershop = await Barbershop.findById(barbershopId); // Make sure you're querying by correct field
+        const barbershop = await Barbershop.findOne({ id: id }); // Use 'id' not '_id'
         if (!barbershop) {
             return res.status(404).json({ message: 'Barbershop not found' });
         }
 
-        // Assuming `reviews` is an array in the Barbershop model
-        barbershop.reviews.push({ rating, comment, user });
+        barbershop.reviews.push({
+            rating: req.body.rating,
+            comment: req.body.comment,
+            user: req.body.user
+        });
         await barbershop.save();
 
         res.status(201).json({ message: 'Review added successfully', data: barbershop.reviews });
