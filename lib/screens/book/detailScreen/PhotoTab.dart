@@ -27,22 +27,47 @@ class _PhotoTabState extends State<PhotoTab> {
   }
 
 
-// Method to capture an image using the camera and upload it
+
   Future<void> _getImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      File imageFile = File(pickedFile.path); // Convert path to a File object
+      File imageFile = File(pickedFile.path);  // Convert path to a File object
 
       setState(() {
         _image = imageFile;
       });
 
-      // After capturing the image, upload it via the API
-      await addPhoto(widget.barbershopId, imageFile, "Description for the photo");
-      fetchPhotos();  // Fetch the latest photos to update the UI
+      // Use the reliableUpload function to handle the upload process with retries
+      if (widget.barbershopId != null) {
+        await reliableUpload(imageFile, "Description for the photo", widget.barbershopId!);
+        fetchPhotos();  // Fetch the latest photos to update the UI after upload
+      } else {
+        print("Barbershop ID is null");
+      }
     }
   }
+
+  // The reliableUpload method goes here
+  Future<void> reliableUpload(File imageFile, String description, int barbershopId) async {
+    int maxTries = 3;
+    int attempts = 0;
+    while (attempts < maxTries) {
+      try {
+        await addPhoto(barbershopId, imageFile, description);
+        break; // If successful, exit loop
+      } catch (e) {
+        attempts++;
+        print("Upload attempt $attempts failed: $e");
+        if (attempts == maxTries) {
+          print("All upload attempts failed.");
+          // Optionally, notify the user or take additional recovery actions
+        }
+      }
+    }
+  }
+
+
 
 
   // Method to fetch photos from the backend
@@ -79,113 +104,44 @@ class _PhotoTabState extends State<PhotoTab> {
       return;
     }
 
-    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');  // Ensure the URL is correct
+    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
     var client = http.Client();
-    try {
-      var request = http.MultipartRequest('POST', uri)
-        ..fields['description'] = description
-        ..files.add(await http.MultipartFile.fromPath(
-            'file',
-            imageFile.path,
-            contentType: MediaType('image', 'jpeg')
-        ));
+    int retries = 3;  // Number of retries
 
-      request.headers.addAll({
-        HttpHeaders.connectionHeader: 'keep-alive', // Helps keep the connection open
-      });
+    while (retries > 0) {
+      try {
+        var request = http.MultipartRequest('POST', uri)
+          ..fields['description'] = description
+          ..files.add(await http.MultipartFile.fromPath(
+              'file',
+              imageFile.path,
+              contentType: MediaType('image', 'jpeg')
+          ));
 
-      var streamedResponse = await client.send(request).timeout(Duration(minutes: 2)); // Increase timeout
+        var streamedResponse = await client.send(request).timeout(Duration(minutes: 2));
 
-      if (streamedResponse.statusCode == 200) {
-        print("Upload successful");
-        await streamedResponse.stream.bytesToString().then((responseBody) {
-          print(responseBody);
-        });
-      } else {
-        print("Upload failed with status: ${streamedResponse.statusCode}");
-        await streamedResponse.stream.bytesToString().then((responseBody) {
-          print(responseBody);
-        });
+        if (streamedResponse.statusCode == 200) {
+          print("Upload successful");
+          await streamedResponse.stream.bytesToString().then((responseBody) {
+            print(responseBody);
+          });
+          break;  // Exit loop on success
+        } else {
+          print("Upload failed with status: ${streamedResponse.statusCode}");
+          await streamedResponse.stream.bytesToString().then((responseBody) {
+            print(responseBody);
+          });
+          retries--;
+          if (retries == 0) throw Exception("Failed after retries");
+        }
+      } catch (e) {
+        print("Attempt failed with error: $e");
+        retries--;
+        if (retries == 0) throw Exception("Failed after retries");
       }
-    } catch (e) {
-      print("Upload failed with error: $e");
-    } finally {
-      client.close();
     }
+    client.close();
   }
-  /*
-  Future<void> addPhoto78787(int? barbershopId, File imageFile, String description) async {
-    if (barbershopId == null) {
-      print('Invalid barbershop ID');
-      return;
-    }
-
-    // Check if the file exists before attempting to upload
-    if (!imageFile.existsSync()) {
-      print("File does not exist: ${imageFile.path}");
-      return;  // Stop the execution if the file does not exist
-    }
-
-    final uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
-    var request = http.MultipartRequest('POST', uri)
-      ..fields['description'] = description
-      ..files.add(await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-          contentType: MediaType('image', 'jpeg') // Ensure the media type matches your file type
-      ));
-
-    try {
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        print("Upload successful");
-        // Listen to the response body if needed
-        response.stream.transform(utf8.decoder).listen((value) {
-          print(value);
-        });
-      } else {
-        print("Upload failed with status: ${response.statusCode}");
-        // Optionally listen to the response body to get more information
-        response.stream.transform(utf8.decoder).listen((value) {
-          print(value);
-        });
-      }
-    } catch (e) {
-      print("Upload failed with error: $e");
-    }
-  }
-*/
-
-
-/*
-
-  Future<void> addPhoto9999(int? barbershopId, File imageFile, String description) async {
-    if (barbershopId == null) {
-      print('Invalid barbershop ID');
-      return;
-    }
-
-    final url = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
-    var request = http.MultipartRequest('POST', url)
-      ..fields['description'] = description
-      ..files.add(await http.MultipartFile.fromPath(
-        'file',
-        imageFile.path,
-        contentType: MediaType('image', 'jpeg'), // Adjust depending on your image type
-      ));
-
-    var response = await request.send();
-
-    if (response.statusCode == 201) {
-      print('Photo added successfully.');
-      response.stream.transform(utf8.decoder).listen((value) {
-        print(value);
-      });
-    } else {
-      print('Failed to add photo');
-    }
-  }
-*/
 
 
   @override
