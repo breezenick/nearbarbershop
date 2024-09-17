@@ -72,7 +72,49 @@ class _PhotoTabState extends State<PhotoTab> {
     }
   }
 
+
   Future<void> addPhoto(int? barbershopId, File imageFile, String description) async {
+    if (barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');  // Ensure the URL is correct
+    var client = http.Client();
+    try {
+      var request = http.MultipartRequest('POST', uri)
+        ..fields['description'] = description
+        ..files.add(await http.MultipartFile.fromPath(
+            'file',
+            imageFile.path,
+            contentType: MediaType('image', 'jpeg')
+        ));
+
+      request.headers.addAll({
+        HttpHeaders.connectionHeader: 'keep-alive', // Helps keep the connection open
+      });
+
+      var streamedResponse = await client.send(request).timeout(Duration(minutes: 2)); // Increase timeout
+
+      if (streamedResponse.statusCode == 200) {
+        print("Upload successful");
+        await streamedResponse.stream.bytesToString().then((responseBody) {
+          print(responseBody);
+        });
+      } else {
+        print("Upload failed with status: ${streamedResponse.statusCode}");
+        await streamedResponse.stream.bytesToString().then((responseBody) {
+          print(responseBody);
+        });
+      }
+    } catch (e) {
+      print("Upload failed with error: $e");
+    } finally {
+      client.close();
+    }
+  }
+  /*
+  Future<void> addPhoto78787(int? barbershopId, File imageFile, String description) async {
     if (barbershopId == null) {
       print('Invalid barbershop ID');
       return;
@@ -112,7 +154,7 @@ class _PhotoTabState extends State<PhotoTab> {
       print("Upload failed with error: $e");
     }
   }
-
+*/
 
 
 /*
