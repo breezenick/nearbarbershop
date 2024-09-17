@@ -15,6 +15,8 @@ class ReviewTab extends StatefulWidget {
 class _ReviewTabState extends State<ReviewTab> {
   final _reviewController = TextEditingController();
   final _ratingController = TextEditingController();
+  List<dynamic> reviews = []; // Adjust based on how your reviews data is structured
+
 
   // Function to submit a review to the backend (POST request)
   Future<void> submitReview() async {
@@ -38,18 +40,45 @@ class _ReviewTabState extends State<ReviewTab> {
       }),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 201) { // Make sure to check for 201 if that's what your API returns upon success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Review submitted successfully')),
       );
       _reviewController.clear();
       _ratingController.clear();
+      fetchReviews(); // Call to fetch the latest reviews
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to submit review: ${response.body}')),
       );
     }
   }
+
+  Future<void> fetchReviews() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/reviews'),
+        headers: {"Content-Type": "application/json"},
+      );
+      if (response.statusCode == 200) {
+        var reviews = jsonDecode(response.body);
+        // Assume you have a state variable that holds reviews
+        setState(() {
+          // Update your state that holds reviews data
+          this.reviews = reviews;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch reviews')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching reviews: $e')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {

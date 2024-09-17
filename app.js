@@ -16,8 +16,10 @@ app.get('/', (req, res) => {
 // Fetch all barbershops
 app.get('/barbershops', async (req, res) => {
     try {
-        const Barbershop = mongoose.connection.collection('cheonan_test'); // Access the correct collection
-        const results = await Barbershop.find({}).toArray(); // Fetch all documents from the collection
+        //const Barbershop = mongoose.connection.collection('cheonan_test'); // Access the correct collection
+        //const results = await Barbershop.find({}).toArray(); // Fetch all documents from the collection
+        const results = await Barbershop.find({}); // Fetch all documents from the collection
+
         res.json(results);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -25,31 +27,43 @@ app.get('/barbershops', async (req, res) => {
     }
 });
 
-app.post('/barbershops/:id/add-review', async (req, res) => {
-    const id = parseInt(req.params.id, 10); // Convert to integer if your ID is numerical
 
+app.post('/barbershops/:id/add-review', async (req, res) => {
+    const id = parseInt(req.params.id, 10);
     console.log('Parsed ID:', id, 'Request Body:', req.body);
 
+    // Basic validation
+    const { rating, comment, user } = req.body;
+    if (!rating || !comment || !user || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: 'Invalid input data. Make sure rating is between 1 and 5.' });
+    }
+
     try {
-        const barbershop = await Barbershop.findOne({ id: id }); // Use 'id' not '_id'
-        if (!barbershop) {
+        // Using the $push operator to add a review directly
+        const result = await Barbershop.updateOne(
+            { id: id },
+            {
+                $push: {
+                    reviews: {
+                        rating: rating,
+                        comment: comment,
+                        user: user,
+                        date: new Date() // Setting the date when review is added
+                    }
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
             return res.status(404).json({ message: 'Barbershop not found' });
         }
 
-        barbershop.reviews.push({
-            rating: req.body.rating,
-            comment: req.body.comment,
-            user: req.body.user
-        });
-        await barbershop.save();
-
-        res.status(201).json({ message: 'Review added successfully', data: barbershop.reviews });
+        res.status(201).json({ message: 'Review added successfully' });
     } catch (error) {
         console.error('Failed to add review:', error);
         res.status(500).json({ message: 'Failed to add review' });
     }
 });
-
 
 
 app.get('/barbershops/:id/reviews', async (req, res) => {
@@ -69,12 +83,6 @@ app.get('/barbershops/:id/reviews', async (req, res) => {
     res.status(500).send('Failed to retrieve reviews');
   }
 });
-
-
-
-
-
-
 
 
 
