@@ -44,6 +44,7 @@ class _PhotoTabState extends State<PhotoTab> {
     }
   }
 
+
   // Method to fetch photos from the backend
   Future<void> fetchPhotos() async {
     if (widget.barbershopId == null) {
@@ -55,6 +56,8 @@ class _PhotoTabState extends State<PhotoTab> {
 
     try {
       final response = await http.get(Uri.parse(url));
+      print('Status Code:=======================>>> ${response.statusCode}');  // Print the status code of the response
+      print('Response Body:===================>>> ${response.body}');      // Print the body of the response
 
       if (response.statusCode == 200) {
         final List<dynamic> fetchedPhotos = json.decode(response.body);
@@ -69,10 +72,52 @@ class _PhotoTabState extends State<PhotoTab> {
     }
   }
 
-
-
-
   Future<void> addPhoto(int? barbershopId, File imageFile, String description) async {
+    if (barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    // Check if the file exists before attempting to upload
+    if (!imageFile.existsSync()) {
+      print("File does not exist: ${imageFile.path}");
+      return;  // Stop the execution if the file does not exist
+    }
+
+    final uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
+    var request = http.MultipartRequest('POST', uri)
+      ..fields['description'] = description
+      ..files.add(await http.MultipartFile.fromPath(
+          'file',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg') // Ensure the media type matches your file type
+      ));
+
+    try {
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        print("Upload successful");
+        // Listen to the response body if needed
+        response.stream.transform(utf8.decoder).listen((value) {
+          print(value);
+        });
+      } else {
+        print("Upload failed with status: ${response.statusCode}");
+        // Optionally listen to the response body to get more information
+        response.stream.transform(utf8.decoder).listen((value) {
+          print(value);
+        });
+      }
+    } catch (e) {
+      print("Upload failed with error: $e");
+    }
+  }
+
+
+
+/*
+
+  Future<void> addPhoto9999(int? barbershopId, File imageFile, String description) async {
     if (barbershopId == null) {
       print('Invalid barbershop ID');
       return;
@@ -98,6 +143,7 @@ class _PhotoTabState extends State<PhotoTab> {
       print('Failed to add photo');
     }
   }
+*/
 
 
   @override
@@ -112,18 +158,16 @@ class _PhotoTabState extends State<PhotoTab> {
           final photo = photos[index];
           return ListTile(
             leading: Container(
-              width: 100, // Fixed width for the image
-              height: 100, // Fixed height for the image
+              width: 100,
+              height: 100,
               child: Image.network(
                 photo['url'],
                 fit: BoxFit.cover,
                 errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-                  return Text('🚫'); // Shows an error icon or text if the image fails to load
+                  return Icon(Icons.error, color: Colors.red);
                 },
               ),
-            ),
-            title: Text(photo['description']),
-            subtitle: Text('Uploaded on: ${photo['date']}'),
+            )
           );
         },
       ),
