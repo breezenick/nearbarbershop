@@ -69,10 +69,9 @@ app.post('/barbershops/:id/add-review', async (req, res) => {
 app.get('/barbershops/:id/reviews', async (req, res) => {
   try {
     const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
-    console.log('id==========================>>>', id);
     // Query using a numerical ID or string ID, not as an ObjectId
-    const barbershop = await Barbershop.findOne({ id: id });
-     console.log('barbershop==========================>>>', barbershop);
+    const barbershop = await Barbershop.findOne({ id: id }).sort({'reviews.date': -1});
+
 
     if (!barbershop || !barbershop.reviews) {
       return res.status(404).json({ message: 'Failed to retrieve barbershop' });

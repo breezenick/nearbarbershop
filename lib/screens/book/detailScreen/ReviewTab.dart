@@ -8,6 +8,7 @@ class ReviewTab extends StatefulWidget {
 
   ReviewTab({required this.barbershopId});
 
+
   @override
   _ReviewTabState createState() => _ReviewTabState();
 }
@@ -17,6 +18,11 @@ class _ReviewTabState extends State<ReviewTab> {
   final _ratingController = TextEditingController();
   List<dynamic> reviews = []; // Adjust based on how your reviews data is structured
 
+  @override
+  void initState() {
+    super.initState();
+    fetchReviews();  // Fetch reviews as soon as the widget is initialized
+  }
 
   // Function to submit a review to the backend (POST request)
   Future<void> submitReview() async {
@@ -54,6 +60,8 @@ class _ReviewTabState extends State<ReviewTab> {
     }
   }
 
+
+
   Future<void> fetchReviews() async {
     try {
       final response = await http.get(
@@ -61,16 +69,14 @@ class _ReviewTabState extends State<ReviewTab> {
         headers: {"Content-Type": "application/json"},
       );
       if (response.statusCode == 200) {
-        var reviews = jsonDecode(response.body);
-        // Assume you have a state variable that holds reviews
+        var fetchedReviews = jsonDecode(response.body) as List;
+        // Sort reviews by date in descending order
+        fetchedReviews.sort((a, b) => b['date'].compareTo(a['date']));
         setState(() {
-          // Update your state that holds reviews data
-          this.reviews = reviews;
+          reviews = fetchedReviews;
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch reviews')),
-        );
+        throw Exception('Failed to load reviews');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,40 +90,55 @@ class _ReviewTabState extends State<ReviewTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Submit Review'),
+        title: Text('Reviews'),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            TextField(
-              controller: _ratingController,
-              decoration: InputDecoration(labelText: 'Rating (1-5)'),
-              keyboardType: TextInputType.number,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: reviews.length,
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+                return ListTile(
+                  title: Text(review['comment']),
+                  subtitle: Text('Rating: ${review['rating']} by ${review['user']} on ${DateTime.parse(review['date']).toLocal()}'),
+                );
+              },
             ),
-            TextField(
-              controller: _reviewController,
-              decoration: InputDecoration(labelText: 'Enter your review here'),
+          ),
+          Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              children: <Widget>[
+                TextField(
+                  controller: _ratingController,
+                  decoration: InputDecoration(labelText: 'Rating (1-5)'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: _reviewController,
+                  decoration: InputDecoration(labelText: 'Enter your review here'),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: submitReview,
+                  child: Text('Submit Review'),
+                ),
+              ],
             ),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: submitReview,
-              child: Text('Submit Review'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
 
 
-Future<String> getCurrentUserId() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    return user.uid; // Firebase User ID
-  } else {
-    throw Exception('No user logged in');
-  }
+    Future<String> getCurrentUserId() async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        return user.uid; // Firebase User ID
+      } else {
+        throw Exception('No user logged in');
+      }
+    }
 }
