@@ -6,16 +6,16 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class PhotoTab extends StatefulWidget {
-  final int? barbershopId;
+  final int? barbershopId;  // Barbershop ID passed from BarbershopDetailScreen
 
-  PhotoTab({required this.barbershopId});  // Constructor that accepts the shop ID
+  PhotoTab({required this.barbershopId});  // Constructor that accepts the barbershop ID
 
   @override
   _PhotoTabState createState() => _PhotoTabState();
 }
 
 class _PhotoTabState extends State<PhotoTab> {
-  File? _image; // To store the captured image
+  File? _image;  // To store the captured image
   final picker = ImagePicker();
   SharedPreferences? prefs;
 
@@ -44,19 +44,24 @@ class _PhotoTabState extends State<PhotoTab> {
       }
 
       // After capturing the image, upload it via the API
-      await addPhoto(widget.shopId, pickedFile.path, "Description for the photo"); // Using the passed shop ID
+      await addPhoto(widget.barbershopId, pickedFile.path, "Description for the photo");  // Using the passed barbershop ID
     }
   }
 
-  // Method to add the photo to MongoDB via the API
-  Future<void> addPhoto(String barbershopId, String photoUrl, String description) async {
-    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo';  // Update with your API endpoint
+  // Method to add the photo to MongoDB via the API using barbershopId
+  Future<void> addPhoto(int? barbershopId, String photoUrl, String description) async {
+    if (barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    final url = 'http://yourserver.com/barbershops/$barbershopId/add-photo';  // Update with your API endpoint
 
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'url': photoUrl,         // Path to the photo
+        'url': photoUrl,
         'description': description,
       }),
     );
@@ -77,10 +82,10 @@ class _PhotoTabState extends State<PhotoTab> {
       body: Center(
         child: _image == null
             ? Text('No image selected.')
-            : Image.file(_image!), // Display the captured image
+            : Image.file(_image!),  // Display the captured image
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _getImage, // Capture image on button press
+        onPressed: _getImage,  // Capture image on button press
         tooltip: 'Pick Image',
         child: Icon(Icons.camera),
       ),
