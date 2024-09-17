@@ -28,11 +28,7 @@ app.get('/barbershops', async (req, res) => {
 app.post('/barbershops/:id/add-review', async (req, res) => {
     const id = parseInt(req.params.id, 10); // Convert to integer if your ID is numerical
 
-     console.log('Parsed ID:', id); // Check the parsed ID
-
-        if (isNaN(id)) {
-          return res.status(400).json({ message: 'Invalid ID format' });
-        }
+    console.log('Parsed ID:', id, 'Request Body:', req.body);
 
     try {
         const barbershop = await Barbershop.findOne({ id: id }); // Use 'id' not '_id'

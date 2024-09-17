@@ -16,6 +16,7 @@ const barbershopSchema = new mongoose.Schema({
   id: true    // This line is actually not needed, as `id` is already defined as part of the schema
 });
 
-const Barbershop = mongoose.model('Barbershop', barbershopSchema);
+const Barbershop = mongoose.model('Barbershop', barbershopSchema, 'cheonan_test');
+
 
 module.exports = Barbershop;
