@@ -85,7 +85,6 @@ class _ReviewTabState extends State<ReviewTab> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,15 +92,16 @@ class _ReviewTabState extends State<ReviewTab> {
         title: Text('Reviews'),
       ),
       body: Column(
-        children: [
+        children: <Widget>[
           Expanded(
             child: ListView.builder(
               itemCount: reviews.length,
               itemBuilder: (context, index) {
-                final review = reviews[index];
                 return ListTile(
-                  title: Text(review['comment']),
-                  subtitle: Text('Rating: ${review['rating']} by ${review['user']} on ${DateTime.parse(review['date']).toLocal()}'),
+                  title: Text(reviews[index]['comment']),
+                  subtitle: Text(
+                      'Rating: ${reviews[index]['rating']} by ${reviews[index]['user']} on ${DateTime.parse(reviews[index]['date']).toLocal()}'
+                  ),
                 );
               },
             ),
@@ -133,7 +133,7 @@ class _ReviewTabState extends State<ReviewTab> {
   }
 
 
-    Future<String> getCurrentUserId() async {
+  Future<String> getCurrentUserId() async {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         return user.uid; // Firebase User ID
