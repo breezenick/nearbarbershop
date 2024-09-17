@@ -71,7 +71,7 @@ class BarbershopDetailScreen extends StatelessWidget {
                 ReviewTab(barbershopId: barbershop.id),  // Use the ID from the Barbershop object
 
                 // Photo Tab
-                PhotoTab(shopName: barbershop.name ?? ''),
+                PhotoTab(barbershopId: barbershop.id),  // Use the ID from the Barbershop object
               ],
             ),
           ),

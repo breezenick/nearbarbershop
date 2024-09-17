@@ -27,6 +27,83 @@ app.get('/barbershops', async (req, res) => {
     }
 });
 
+// Add a photo to a barbershop
+app.post('/barbershops/:id/add-photo', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  const { url, description } = req.body;
+  if (!url) {
+    return res.status(400).json({ message: 'Photo URL is required.' });
+  }
+
+  try {
+    const result = await Barbershop.updateOne(
+      { id: id },
+      {
+        $push: {
+          photos: {
+            url: url,
+            description: description || '',
+            date: new Date()
+          }
+        }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Barbershop not found' });
+    }
+
+    res.status(201).json({ message: 'Photo added successfully' });
+  } catch (error) {
+    console.error('Failed to add photo:', error);
+    res.status(500).json({ message: 'Failed to add photo' });
+  }
+});
+
+
+// Get photos for a specific barbershop
+app.get('/barbershops/:id/photos', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  try {
+    const barbershop = await Barbershop.findOne({ id: id }).sort({ 'photos.date': -1 });
+
+    if (!barbershop || !barbershop.photos) {
+      return res.status(404).json({ message: 'No photos found for this barbershop.' });
+    }
+
+    res.json(barbershop.photos);
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    res.status(500).json({ message: 'Failed to retrieve photos' });
+  }
+});
+
+
+app.get('/barbershops/:id/photos/search', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { query } = req.query;  // Search query
+
+  try {
+    const barbershop = await Barbershop.findOne({ id: id });
+    if (!barbershop || !barbershop.photos) {
+      return res.status(404).json({ message: 'No photos found.' });
+    }
+
+    // Filter photos by description matching the search query
+    const filteredPhotos = barbershop.photos.filter(photo =>
+      photo.description.toLowerCase().includes(query.toLowerCase())
+    );
+
+    res.json(filteredPhotos);
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    res.status(500).json({ message: 'Failed to search photos' });
+  }
+});
+
+
 
 app.post('/barbershops/:id/add-review', async (req, res) => {
     const id = parseInt(req.params.id, 10);
