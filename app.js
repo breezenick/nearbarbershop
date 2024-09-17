@@ -62,12 +62,12 @@ app.post('/barbershops/:id/add-photo', async (req, res) => {
 });
 
 
-// Get photos for a specific barbershop
+// Fetch photos for a specific barbershop
 app.get('/barbershops/:id/photos', async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id, 10);  // Ensure the ID is an integer
 
   try {
-    const barbershop = await Barbershop.findOne({ id: id }).sort({ 'photos.date': -1 });
+    const barbershop = await Barbershop.findOne({ id: id });
 
     if (!barbershop || !barbershop.photos) {
       return res.status(404).json({ message: 'No photos found for this barbershop.' });
@@ -79,6 +79,7 @@ app.get('/barbershops/:id/photos', async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve photos' });
   }
 });
+
 
 
 app.get('/barbershops/:id/photos/search', async (req, res) => {

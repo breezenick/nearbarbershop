@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
+import 'dart:io';
+
 
 class PhotoTab extends StatefulWidget {
   final int? barbershopId;  // Barbershop ID passed from BarbershopDetailScreen
@@ -17,61 +18,87 @@ class PhotoTab extends StatefulWidget {
 class _PhotoTabState extends State<PhotoTab> {
   File? _image;  // To store the captured image
   final picker = ImagePicker();
-  SharedPreferences? prefs;
+  List<dynamic> photos = [];  // To store the fetched photos
 
   @override
   void initState() {
     super.initState();
-    loadSharedPreferences();
+    fetchPhotos();  // Fetch photos when the widget is initialized
   }
 
-  Future<void> loadSharedPreferences() async {
-    prefs = await SharedPreferences.getInstance();
-  }
 
-  // Method to capture an image using the camera
+// Method to capture an image using the camera and upload it
   Future<void> _getImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
+      File imageFile = File(pickedFile.path); // Convert path to a File object
+
       setState(() {
-        _image = File(pickedFile.path);
+        _image = imageFile;
       });
 
-      // Save the image path to SharedPreferences (if needed)
-      if (prefs != null) {
-        prefs!.setString('photoPath', pickedFile.path);
-      }
-
       // After capturing the image, upload it via the API
-      await addPhoto(widget.barbershopId, pickedFile.path, "Description for the photo");  // Using the passed barbershop ID
+      await addPhoto(widget.barbershopId, imageFile, "Description for the photo");
+      fetchPhotos();  // Fetch the latest photos to update the UI
     }
   }
 
-  // Method to add the photo to MongoDB via the API using barbershopId
-  Future<void> addPhoto(int? barbershopId, String photoUrl, String description) async {
+  // Method to fetch photos from the backend
+  Future<void> fetchPhotos() async {
+    if (widget.barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> fetchedPhotos = json.decode(response.body);
+        setState(() {
+          photos = fetchedPhotos;  // Update the photos state with the fetched data
+        });
+      } else {
+        print('Failed to fetch photos: ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching photos: $e');
+    }
+  }
+
+
+
+
+  Future<void> addPhoto(int? barbershopId, File imageFile, String description) async {
     if (barbershopId == null) {
       print('Invalid barbershop ID');
       return;
     }
 
-    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo';  // Update with your API endpoint
+    final url = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
+    var request = http.MultipartRequest('POST', url)
+      ..fields['description'] = description
+      ..files.add(await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'), // Adjust depending on your image type
+      ));
 
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'url': photoUrl,
-        'description': description,
-      }),
-    );
+    var response = await request.send();
 
     if (response.statusCode == 201) {
       print('Photo added successfully.');
+      response.stream.transform(utf8.decoder).listen((value) {
+        print(value);
+      });
     } else {
-      print('Failed to add photo: ${response.body}');
+      print('Failed to add photo');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +106,26 @@ class _PhotoTabState extends State<PhotoTab> {
       appBar: AppBar(
         title: Text('Photo Tab'),
       ),
-      body: Center(
-        child: _image == null
-            ? Text('No image selected.')
-            : Image.file(_image!),  // Display the captured image
+      body: ListView.builder(
+        itemCount: photos.length,
+        itemBuilder: (context, index) {
+          final photo = photos[index];
+          return ListTile(
+            leading: Container(
+              width: 100, // Fixed width for the image
+              height: 100, // Fixed height for the image
+              child: Image.network(
+                photo['url'],
+                fit: BoxFit.cover,
+                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                  return Text('🚫'); // Shows an error icon or text if the image fails to load
+                },
+              ),
+            ),
+            title: Text(photo['description']),
+            subtitle: Text('Uploaded on: ${photo['date']}'),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _getImage,  // Capture image on button press
@@ -92,3 +135,5 @@ class _PhotoTabState extends State<PhotoTab> {
     );
   }
 }
+
+
