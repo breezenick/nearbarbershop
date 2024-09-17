@@ -55,7 +55,7 @@ class _PhotoTabState extends State<PhotoTab> {
       return;
     }
 
-    final url = 'http://yourserver.com/barbershops/$barbershopId/add-photo';  // Update with your API endpoint
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo';  // Update with your API endpoint
 
     final response = await http.post(
       Uri.parse(url),
