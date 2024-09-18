@@ -8,28 +8,29 @@ const multer = require('multer');
 const storage = multer.memoryStorage(); // Stores files in memory
 const upload = multer({ storage: storage });
 
-
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-app.use('/uploads', express.static('uploads'));  // <-- Add this line here
 
 
+app.post('/upload', upload.single('file'), (req, res) => {
+  const file = req.file;
+  const s3Params = {
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: `files/${Date.now()}_${req.file.originalname}`,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+    ACL: 'public-read'
+  };
 
-// Configure Multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Specify the destination folder where files will be stored
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Use timestamp + original filename to ensure uniqueness
-  }
+  s3.upload(s3Params, function(err, data) {
+    if (err) {
+      return res.status(500).send('Error uploading to S3');
+    }
+    res.status(200).send('File uploaded successfully');
+  });
 });
-
-const upload = multer({ storage: storage });
-
 
 // Default route
 app.get('/', (req, res) => {
