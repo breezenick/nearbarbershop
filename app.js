@@ -1,8 +1,13 @@
+// At the top of your app.js
+const s3 = require('./aws-config');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const Barbershop = require('./Barbershop');
 const multer = require('multer');
+const storage = multer.memoryStorage(); // Stores files in memory
+const upload = multer({ storage: storage });
+
 
 const app = express();
 
@@ -50,26 +55,36 @@ app.get('/barbershops', async (req, res) => {
 
 
 
-// Ensure you have an 'uploads' directory in your project folder
-// If not, you can create one by running: mkdir uploads
+// Existing route for adding a photo
+app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) => {
+    const { id } = req.params;
+    const { file, body: { description } } = req;
 
-// Route to handle file uploads
-app.post('/barbershops/:id/add-photo', upload.single('file'), (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { description } = req.body;
+    if (!file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+    }
 
-  if (!req.file) {
-    return res.status(400).json({ message: 'No file uploaded' });
-  }
+    // Set up S3 upload parameters
+    const s3Params = {
+        Bucket: process.env.S3_BUCKET_NAME, // Ensure you have this in your .env or Heroku config
+        Key: `barbershop_${id}/${file.originalname}`, // Organize files by barbershop
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read' // Or another ACL according to your requirements
+    };
 
-  // The uploaded file information is available in req.file
-  const filePath = req.file.path;  // The local path to the uploaded file
-  const fileName = req.file.filename;  // The name of the uploaded file
+    try {
+        // Upload file to S3
+        const data = await s3.upload(s3Params).promise();
+        const imageUrl = data.Location; // URL of the uploaded file
 
-  // Process the uploaded file, store its path or URL in your database, etc.
-  console.log(`File uploaded: ${filePath}`);
+        // Optionally, save URL to your database, associated with the barbershop
 
-  res.status(201).json({ message: 'Photo added successfully==================', filePath });
+        res.status(201).json({ message: '★★★★ Photo uploaded successfully ★★★★', imageUrl });
+    } catch (err) {
+        console.error('S3 Upload Error:', err);
+        res.status(500).send('Failed to upload photo');
+    }
 });
 
 

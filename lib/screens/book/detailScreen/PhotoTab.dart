@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';  // For encoding JSON
 import 'dart:io';       // For File
@@ -91,6 +92,7 @@ class _PhotoTabState extends State<PhotoTab> {
   }
 
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,7 +132,11 @@ class _PhotoTabState extends State<PhotoTab> {
             itemBuilder: (context, index) {
               final photo = photos[index];
               return ListTile(
-                leading: Image.network(photo['url']),  // Display photo from server
+                leading: CachedNetworkImage(
+                  imageUrl: photo['url'],
+                  placeholder: (context, url) => CircularProgressIndicator(),
+                  errorWidget: (context, url, error) => Icon(Icons.error),
+                ),
                 title: Text(photo['description'] ?? 'No Description'),
               );
             },
