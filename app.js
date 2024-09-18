@@ -20,8 +20,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: `files/${Date.now()}_${req.file.originalname}`,
     Body: file.buffer,
-    ContentType: file.mimetype,
-    ACL: 'public-read'
+    ContentType: file.mimetype
   };
 
   s3.upload(s3Params, function(err, data) {
