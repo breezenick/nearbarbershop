@@ -19,6 +19,13 @@ class _PhotoTabState extends State<PhotoTab> {
   List<dynamic> photos = [];  // To store fetched photos from the server
   final picker = ImagePicker();
 
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPhotos(); // Call your method to fetch images from the server
+  }
+
   // Function to select an image from the camera
   Future<void> _pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
@@ -81,12 +88,6 @@ class _PhotoTabState extends State<PhotoTab> {
     } catch (e) {
       print('Error fetching photos: $e');
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPhotos();  // Fetch photos when the widget is initialized
   }
 
 

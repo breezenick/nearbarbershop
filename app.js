@@ -69,7 +69,7 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), (req, res) => {
   // Process the uploaded file, store its path or URL in your database, etc.
   console.log(`File uploaded: ${filePath}`);
 
-  res.status(201).json({ message: 'Photo added successfully', filePath });
+  res.status(201).json({ message: 'Photo added successfully==================', filePath });
 });
 
 
