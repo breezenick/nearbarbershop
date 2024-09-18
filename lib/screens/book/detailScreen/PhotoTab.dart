@@ -1,76 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'dart:convert';
-import 'dart:io';
-
+import 'dart:convert';  // For encoding JSON
+import 'dart:io';       // For File
+import 'package:image_picker/image_picker.dart'; // For taking photos
+import 'package:http/http.dart' as http; // For making HTTP requests
+import 'package:http_parser/http_parser.dart'; // For specifying media type
 
 class PhotoTab extends StatefulWidget {
-  final int? barbershopId;  // Barbershop ID passed from BarbershopDetailScreen
+  final int? barbershopId; // Barbershop ID to interact with the backend
 
-  PhotoTab({required this.barbershopId});  // Constructor that accepts the barbershop ID
+  PhotoTab({Key? key, required this.barbershopId}) : super(key: key);
 
   @override
   _PhotoTabState createState() => _PhotoTabState();
 }
 
 class _PhotoTabState extends State<PhotoTab> {
-  File? _image;  // To store the captured image
+  File? _image; // To store the selected image
+  List<dynamic> photos = [];  // To store fetched photos from the server
   final picker = ImagePicker();
-  List<dynamic> photos = [];  // To store the fetched photos
 
-  @override
-  void initState() {
-    super.initState();
-    fetchPhotos();  // Fetch photos when the widget is initialized
-  }
-
-
-
-  Future<void> _getImage() async {
+  // Function to select an image from the camera
+  Future<void> _pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);  // Convert path to a File object
-
       setState(() {
-        _image = imageFile;
+        _image = File(pickedFile.path);
       });
+    }
+  }
 
-      // Use the reliableUpload function to handle the upload process with retries
-      if (widget.barbershopId != null) {
-        await reliableUpload(imageFile, "Description for the photo", widget.barbershopId!);
-        fetchPhotos();  // Fetch the latest photos to update the UI after upload
+  // Method to upload a photo to the server
+  Future<void> uploadPhoto(int? barbershopId, File imageFile, String description) async {
+    if (barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
+    print('Uploading photo to:============================= $uri');
+
+    var request = http.MultipartRequest('POST', uri)
+      ..fields['description'] = description
+      ..files.add(await http.MultipartFile.fromPath(
+          'file', imageFile.path,
+          contentType: MediaType('image', 'jpg')));
+  print('Uploading photo to request :============================= $request');
+
+    try {
+      var response = await request.send();
+      if (response.statusCode == 201) {
+        print('Photo uploaded successfully');
+        fetchPhotos();  // Refresh the list of photos after a successful upload
       } else {
-        print("Barbershop ID is null");
+        print('Failed to upload photo===================: ${response.statusCode}');
       }
+    } catch (e) {
+      print('Error uploading photo=====================: $e');
     }
   }
 
-  // The reliableUpload method goes here
-  Future<void> reliableUpload(File imageFile, String description, int barbershopId) async {
-    int maxTries = 3;
-    int attempts = 0;
-    while (attempts < maxTries) {
-      try {
-        await addPhoto(barbershopId, imageFile, description);
-        break; // If successful, exit loop
-      } catch (e) {
-        attempts++;
-        print("Upload attempt $attempts failed: $e");
-        if (attempts == maxTries) {
-          print("All upload attempts failed.");
-          // Optionally, notify the user or take additional recovery actions
-        }
-      }
-    }
-  }
-
-
-
-
-  // Method to fetch photos from the backend
+  // Fetch photos from the server
   Future<void> fetchPhotos() async {
     if (widget.barbershopId == null) {
       print('Invalid barbershop ID');
@@ -81,13 +71,9 @@ class _PhotoTabState extends State<PhotoTab> {
 
     try {
       final response = await http.get(Uri.parse(url));
-      print('Status Code:=======================>>> ${response.statusCode}');  // Print the status code of the response
-      print('Response Body:===================>>> ${response.body}');      // Print the body of the response
-
       if (response.statusCode == 200) {
-        final List<dynamic> fetchedPhotos = json.decode(response.body);
         setState(() {
-          photos = fetchedPhotos;  // Update the photos state with the fetched data
+          photos = json.decode(response.body);  // Update the list of photos
         });
       } else {
         print('Failed to fetch photos: ${response.body}');
@@ -97,50 +83,10 @@ class _PhotoTabState extends State<PhotoTab> {
     }
   }
 
-
-  Future<void> addPhoto(int? barbershopId, File imageFile, String description) async {
-    if (barbershopId == null) {
-      print('Invalid barbershop ID');
-      return;
-    }
-
-    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/add-photo');
-    var client = http.Client();
-    int retries = 3;  // Number of retries
-
-    while (retries > 0) {
-      try {
-        var request = http.MultipartRequest('POST', uri)
-          ..fields['description'] = description
-          ..files.add(await http.MultipartFile.fromPath(
-              'file',
-              imageFile.path,
-              contentType: MediaType('image', 'jpeg')
-          ));
-
-        var streamedResponse = await client.send(request).timeout(Duration(minutes: 2));
-
-        if (streamedResponse.statusCode == 200) {
-          print("Upload successful");
-          await streamedResponse.stream.bytesToString().then((responseBody) {
-            print(responseBody);
-          });
-          break;  // Exit loop on success
-        } else {
-          print("Upload failed with status: ${streamedResponse.statusCode}");
-          await streamedResponse.stream.bytesToString().then((responseBody) {
-            print(responseBody);
-          });
-          retries--;
-          if (retries == 0) throw Exception("Failed after retries");
-        }
-      } catch (e) {
-        print("Attempt failed with error: $e");
-        retries--;
-        if (retries == 0) throw Exception("Failed after retries");
-      }
-    }
-    client.close();
+  @override
+  void initState() {
+    super.initState();
+    fetchPhotos();  // Fetch photos when the widget is initialized
   }
 
 
@@ -150,32 +96,46 @@ class _PhotoTabState extends State<PhotoTab> {
       appBar: AppBar(
         title: Text('Photo Tab'),
       ),
-      body: ListView.builder(
-        itemCount: photos.length,
-        itemBuilder: (context, index) {
-          final photo = photos[index];
-          return ListTile(
-            leading: Container(
-              width: 100,
-              height: 100,
-              child: Image.network(
-                photo['url'],
-                fit: BoxFit.cover,
-                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-                  return Icon(Icons.error, color: Colors.red);
-                },
-              ),
-            )
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getImage,  // Capture image on button press
-        tooltip: 'Pick Image',
-        child: Icon(Icons.camera),
+      body: ListView(
+        children: [
+          // Display selected image or prompt to select one
+          _image == null
+              ? Text('No image selected.')
+              : Image.file(_image!),
+
+          // Button to take a new photo
+          ElevatedButton(
+            onPressed: _pickImage,
+            child: Text('Take Photo'),
+          ),
+
+          // Button to upload the selected photo
+          ElevatedButton(
+            onPressed: () {
+              if (_image != null) {
+                uploadPhoto(widget.barbershopId, _image!, 'A new photo');
+              } else {
+                print('No image selected to upload');
+              }
+            },
+            child: Text('Upload Photo'),
+          ),
+
+          // Display list of fetched photos from the server
+          ListView.builder(
+            shrinkWrap: true, // This will prevent overflow in the ListView
+            physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
+            itemCount: photos.length,
+            itemBuilder: (context, index) {
+              final photo = photos[index];
+              return ListTile(
+                leading: Image.network(photo['url']),  // Display photo from server
+                title: Text(photo['description'] ?? 'No Description'),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 }
-
-

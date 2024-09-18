@@ -17,8 +17,6 @@ class Barbershop {
   final String? bizhourInfo;
   final String? menuInfo;
   final List<String>? context;
-  final List<String>? microReview;
-  final String? homePage;
 
 
 
@@ -33,8 +31,7 @@ class Barbershop {
     this.bizhourInfo,
     this.menuInfo,
     this.context,
-    this.microReview,
-    this.homePage,
+
   });
 
   // Method to `fromJson` is useful for decoding an instance of `Barbershop` from a map

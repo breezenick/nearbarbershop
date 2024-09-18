@@ -2,12 +2,31 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const Barbershop = require('./Barbershop');
+const multer = require('multer');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+app.use('/uploads', express.static('uploads'));  // <-- Add this line here
+
+
+
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Specify the destination folder where files will be stored
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); // Use timestamp + original filename to ensure uniqueness
+  }
+});
+
+const upload = multer({ storage: storage });
+
+
+// Default route
 app.get('/', (req, res) => {
     res.send('★★★★★ Welcome to the MongoDB API ★★★★★');
 });
@@ -27,39 +46,34 @@ app.get('/barbershops', async (req, res) => {
     }
 });
 
-// Add a photo to a barbershop
-app.post('/barbershops/:id/add-photo', async (req, res) => {
+
+
+
+
+// Ensure you have an 'uploads' directory in your project folder
+// If not, you can create one by running: mkdir uploads
+
+// Route to handle file uploads
+app.post('/barbershops/:id/add-photo', upload.single('file'), (req, res) => {
   const id = parseInt(req.params.id, 10);
+  const { description } = req.body;
 
-  const { url, description } = req.body;
-  if (!url) {
-    return res.status(400).json({ message: 'Photo URL is required.' });
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
   }
 
-  try {
-    const result = await Barbershop.updateOne(
-      { id: id },
-      {
-        $push: {
-          photos: {
-            url: url,
-            description: description || '',
-            date: new Date()
-          }
-        }
-      }
-    );
+  // The uploaded file information is available in req.file
+  const filePath = req.file.path;  // The local path to the uploaded file
+  const fileName = req.file.filename;  // The name of the uploaded file
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'Barbershop not found' });
-    }
+  // Process the uploaded file, store its path or URL in your database, etc.
+  console.log(`File uploaded: ${filePath}`);
 
-    res.status(201).json({ message: 'Photo added successfully' });
-  } catch (error) {
-    console.error('Failed to add photo:', error);
-    res.status(500).json({ message: 'Failed to add photo' });
-  }
+  res.status(201).json({ message: 'Photo added successfully', filePath });
 });
+
+
+
 
 
 // Fetch photos for a specific barbershop
