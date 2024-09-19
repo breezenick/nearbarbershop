@@ -2,27 +2,28 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const Barbershop = require('./Barbershop');
-const multer = require('multer'); // Import multer
+const multer = require('multer');
+const multerS3 = require('multer-s3');
 
 // AWS SDK v3 imports
 const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
-const { Upload } = require('@aws-sdk/lib-storage'); // For multipart file uploads to S3
-
-// Initialize multer with memory storage
-const uploadMiddleware = multer({ storage: multer.memoryStorage() });
+const { Upload } = require('@aws-sdk/lib-storage'); // For file upload
 
 // Initialize S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-west-1',
-}); // Use v3 S3 client
+        region: process.env.AWS_REGION || 'us-west-1'
+ }); // Use v3 S3 client
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const upload = multer({ storage: multer.memoryStorage() });
 
 
 
+
+// Use this upload middleware in your routes
 app.post('/upload', upload.single('file'), (req, res) => {
   if (req.file && req.file.location) {  // multer-s3 adds the file location to the req.file object
     res.status(200).send({ message: 'File uploaded successfully', url: req.file.location });
@@ -47,13 +48,12 @@ app.get('/barbershops', async (req, res) => {
   }
 });
 
-// Upload a photo for a specific barbershop
-app.post('/barbershops/:id/add-photo', uploadMiddleware.single('file'), async (req, res) => {
-  console.log(req.file); // Check if buffer exists
+
+app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) => {
+    console.log(req.file); // Check if buffer exists
 
   const { id } = req.params;
-  const file = req.file; // Access file directly from req.file
-  const { description } = req.body; // If you are receiving description in the body
+  const { file, body: { description } } = req;
 
   if (!file) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -63,18 +63,18 @@ app.post('/barbershops/:id/add-photo', uploadMiddleware.single('file'), async (r
   const s3Params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: `barbershop_${id}/${file.originalname}`,
-    Body: file.buffer, // Use file.buffer from multer's memoryStorage
+    Body: file.buffer, // Ensure you're using the buffer, not a stream
     ContentType: file.mimetype
   };
 
   try {
     // Use AWS SDK v3's Upload class for multipart uploads
-    const s3Upload = new Upload({
+    const upload = new Upload({
       client: s3Client,  // AWS SDK v3 S3 client
       params: s3Params,
     });
 
-    const data = await s3Upload.done(); // Perform the upload
+    const data = await upload.done(); // Perform the upload
     const imageUrl = data.Location; // URL of the uploaded file
 
     res.status(201).json({ message: '★★★★ Photo uploaded successfully ★★★★', imageUrl });
@@ -84,4 +84,98 @@ app.post('/barbershops/:id/add-photo', uploadMiddleware.single('file'), async (r
   }
 });
 
-// Other routes omitted for brevity...
+
+
+// Fetch photos for a specific barbershop
+app.get('/barbershops/:id/photos', async (req, res) => {
+  const id = parseInt(req.params.id, 10);  // Ensure the ID is an integer
+  try {
+    const barbershop = await Barbershop.findOne({ id: id });
+    if (!barbershop || !barbershop.photos) {
+      return res.status(404).json({ message: 'No photos found for this barbershop.' });
+    }
+    res.json(barbershop.photos);
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    res.status(500).json({ message: 'Failed to retrieve photos' });
+  }
+});
+
+// Search photos for a specific barbershop
+app.get('/barbershops/:id/photos/search', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { query } = req.query;  // Search query
+  try {
+    const barbershop = await Barbershop.findOne({ id: id });
+    if (!barbershop || !barbershop.photos) {
+      return res.status(404).json({ message: 'No photos found.' });
+    }
+
+    // Filter photos by description matching the search query
+    const filteredPhotos = barbershop.photos.filter(photo =>
+      photo.description.toLowerCase().includes(query.toLowerCase())
+    );
+    res.json(filteredPhotos);
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    res.status(500).json({ message: 'Failed to search photos' });
+  }
+});
+
+// Add a review for a barbershop
+app.post('/barbershops/:id/add-review', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  console.log('Parsed ID:', id, 'Request Body:', req.body);
+
+  // Basic validation
+  const { rating, comment, user } = req.body;
+  if (!rating || !comment || !user || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Invalid input data. Make sure rating is between 1 and 5.' });
+  }
+
+  try {
+    // Using the $push operator to add a review directly
+    const result = await Barbershop.updateOne(
+      { id: id },
+      {
+        $push: {
+          reviews: {
+            rating: rating,
+            comment: comment,
+            user: user,
+            date: new Date() // Setting the date when review is added
+          }
+        }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Barbershop not found' });
+    }
+
+    res.status(201).json({ message: 'Review added successfully' });
+  } catch (error) {
+    console.error('Failed to add review:', error);
+    res.status(500).json({ message: 'Failed to add review' });
+  }
+});
+
+// Fetch reviews for a specific barbershop
+app.get('/barbershops/:id/reviews', async (req, res) => {
+  try {
+    const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
+    const barbershop = await Barbershop.findOne({ id: id }).sort({ 'reviews.date': -1 });
+
+    if (!barbershop || !barbershop.reviews) {
+      return res.status(404).json({ message: 'Failed to retrieve barbershop' });
+    }
+    res.json(barbershop.reviews);
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).send('Failed to retrieve reviews');
+  }
+});
+
+// Listen on the specified port
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
