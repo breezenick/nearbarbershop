@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart'; // For taking photos
 import 'package:http/http.dart' as http; // For making HTTP requests
 import 'package:http_parser/http_parser.dart'; // For specifying media type
 import 'package:intl/intl.dart';
+import 'package:image/image.dart' as img;
 
 class PhotoTab extends StatefulWidget {
   final int? barbershopId; // Barbershop ID to interact with the backend
@@ -50,14 +51,20 @@ class _PhotoTabState extends State<PhotoTab>
     }
   }
 
-  // Function to select an image from the camera and upload it immediately
   Future<void> _takeAndUploadPhoto() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
 
-      // Immediately upload the photo after taking it
+      // Resize the image before uploading
+      img.Image? originalImage = img.decodeImage(imageFile.readAsBytesSync());
+      if (originalImage != null) {
+        img.Image resizedImage = img.copyResize(originalImage, width: 800); // Resize to width 800px
+        imageFile.writeAsBytesSync(img.encodeJpg(resizedImage)); // Overwrite file with resized image
+      }
+
+      // Immediately upload the photo after resizing it
       await uploadPhoto(widget.barbershopId, imageFile, 'A new photo');
     } else {
       print('No image selected.');
@@ -135,10 +142,11 @@ class _PhotoTabState extends State<PhotoTab>
     }
   }
 
+  bool isZooming = false;
+
+
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo Tab'),
@@ -148,26 +156,55 @@ class _PhotoTabState extends State<PhotoTab>
           Expanded(
             child: photos.isEmpty
                 ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text('No photos available from the server.'),
-                    ),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: ClampingScrollPhysics(),
-                    itemCount: photos.length,
-                    itemBuilder: (context, index) {
-                      final photo = photos[index];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text('No photos available from the server.'),
+              ),
+            )
+                : NotificationListener<ScrollNotification>(
+              onNotification: (scrollNotification) {
+                // Disable scrolling while zooming
+                if (isZooming) {
+                  return true;
+                }
+                return false;
+              },
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: isZooming
+                    ? NeverScrollableScrollPhysics()
+                    : ClampingScrollPhysics(),
+                itemCount: photos.length,
+                itemBuilder: (context, index) {
+                  final photo = photos[index];
+                  return Center(
+                    child: GestureDetector(
+                      onScaleStart: (_) {
+                        setState(() {
+                          isZooming = true;
+                        });
+                      },
+                      onScaleEnd: (_) {
+                        setState(() {
+                          isZooming = false;
+                        });
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          CachedNetworkImage(
-                            imageUrl: photo['url'],
-                            placeholder: (context, url) =>
-                                CircularProgressIndicator(),
-                            errorWidget: (context, url, error) =>
-                                Icon(Icons.error),
+                          InteractiveViewer(
+                            boundaryMargin: EdgeInsets.all(20),
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: CachedNetworkImage(
+                              imageUrl: photo['url'],
+                              placeholder: (context, url) =>
+                                  CircularProgressIndicator(),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           SizedBox(height: 8),
                           Text(
@@ -191,9 +228,12 @@ class _PhotoTabState extends State<PhotoTab>
                           ),
                           Divider(),
                         ],
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -206,6 +246,7 @@ class _PhotoTabState extends State<PhotoTab>
       ),
     );
   }
+
 
   // Confirmation dialog before deleting the photo
   void _confirmDelete(BuildContext context, String photoUrl) {

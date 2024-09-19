@@ -55,6 +55,7 @@ dependencies:
   camera: ^0.10.6
   shared_preferences: ^2.3.0
   photo_view : ^0.14.0
+  image : ^4.1.6
 
 
 
