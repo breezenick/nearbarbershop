@@ -5,8 +5,9 @@ const cors = require('cors');
 const mongoose = require('./database'); // Import the Mongoose connection
 const Barbershop = require('./Barbershop');
 const multer = require('multer');
+const multerS3 = require('multer-s3');
 const storage = multer.memoryStorage(); // Stores files in memory
-const upload = multer({ storage: storage });
+
 
 const app = express();
 app.use(cors());
@@ -14,23 +15,31 @@ app.use(express.json());
 
 
 
-app.post('/upload', upload.single('file'), (req, res) => {
-  const file = req.file;
-  const s3Params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: `files/${Date.now()}_${req.file.originalname}`,
-    Body: file.buffer,
-    ContentType: file.mimetype
-  };
-
-
-  s3.upload(s3Params, function(err, data) {
-    if (err) {
-      return res.status(500).send('Error uploading to S3');
-    }
-    res.status(200).send('File uploaded successfully');
-  });
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.S3_BUCKET_NAME,
+    metadata: function (req, file, cb) {
+      cb(null, {fieldName: file.fieldname});  // Optional; adjust as needed
+    },
+    key: function (req, file, cb) {
+      cb(null, Date.now().toString() + '-' + file.originalname);  // Customize your file naming convention
+    },
+    contentType: multerS3.AUTO_CONTENT_TYPE  // Auto-set the content type
+  })
 });
+
+// Use this upload middleware in your routes
+app.post('/upload', upload.single('file'), (req, res) => {
+  if (req.file && req.file.location) {  // multer-s3 adds the file location to the req.file object
+    res.status(200).send({message: 'File uploaded successfully', url: req.file.location});
+  } else {
+    res.status(500).send('Failed to upload');
+  }
+});
+
+
+
 
 // Default route
 app.get('/', (req, res) => {
