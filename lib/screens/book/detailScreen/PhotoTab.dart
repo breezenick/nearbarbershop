@@ -1,12 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+import 'dart:convert'; // For encoding JSON
+import 'dart:io'; // For File
+import 'package:image_picker/image_picker.dart'; // For taking photos
+import 'package:http/http.dart' as http; // For making HTTP requests
+import 'package:http_parser/http_parser.dart'; // For specifying media type
 import 'package:intl/intl.dart';
-import 'package:image/image.dart' as img;
+
+import 'FullScreenImage.dart';
 
 class PhotoTab extends StatefulWidget {
   final int? barbershopId;
@@ -20,12 +21,11 @@ class PhotoTab extends StatefulWidget {
 class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
   List<dynamic> photos = [];
   final picker = ImagePicker();
-  bool isZooming = false;
 
   @override
   void initState() {
     super.initState();
-    fetchPhotos(); // Call method to fetch images from the server
+    fetchPhotos(); // Fetch images from server
   }
 
   Future<void> fetchPhotos() async {
@@ -75,20 +75,27 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                   margin: EdgeInsets.all(10),
                   child: Column(
                     children: [
-                      // Isolate the zoom area using a fixed size container
-                      Container(
-                        height: 300, // Fixed height for zoomable image area
-                        child: InteractiveViewer(
-                          boundaryMargin: EdgeInsets.all(20),
-                          minScale: 0.5,
-                          maxScale: 4.0,
-                          child: CachedNetworkImage(
-                            imageUrl: photo['url'],
-                            placeholder: (context, url) => CircularProgressIndicator(),
-                            errorWidget: (context, url, error) => Icon(Icons.error),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          ),
+                      GestureDetector(
+                        onTap: () {
+                          // Open the full-screen zoomable image on tap
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FullScreenImage(
+                                imageUrl: photo['url'],
+                              ),
+                            ),
+                          );
+                        },
+                        child: CachedNetworkImage(
+                          imageUrl: photo['url'],
+                          placeholder: (context, url) =>
+                              CircularProgressIndicator(),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
+                          height: 300,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
                         ),
                       ),
                       SizedBox(height: 8),
