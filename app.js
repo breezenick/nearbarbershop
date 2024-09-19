@@ -64,7 +64,8 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) =
     Bucket: process.env.S3_BUCKET_NAME,
     Key: `barbershop_${id}/${file.originalname}`,
     Body: file.buffer, // Ensure you're using the buffer, not a stream
-    ContentType: file.mimetype
+    ContentType: file.mimetype,
+    ACL: 'public-read', // Make the file public
   };
 
   try {
