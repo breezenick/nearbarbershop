@@ -72,9 +72,11 @@ class _ReviewTabState extends State<ReviewTab> {
         var fetchedReviews = jsonDecode(response.body) as List;
         // Sort reviews by date in descending order
         fetchedReviews.sort((a, b) => b['date'].compareTo(a['date']));
-        setState(() {
-          reviews = fetchedReviews;
-        });
+       if(mounted) {
+         setState(() {
+           reviews = fetchedReviews;
+         });
+       }
       } else {
         throw Exception('Failed to load reviews');
       }
