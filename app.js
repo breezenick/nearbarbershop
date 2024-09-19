@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.json());
 
 // Use the photo and review routes
-app.use('/barbershops', photoRoutes);
-app.use('/barbershops', reviewRoutes);
+app.use('/photos', photoRoutes);
+app.use('/reviews', reviewRoutes);
 
 // Default route
 app.get('/', (req, res) => {
