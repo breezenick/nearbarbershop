@@ -1,4 +1,3 @@
-// Photo.js
 const express = require('express');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
