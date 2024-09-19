@@ -10,7 +10,9 @@ const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
 const { Upload } = require('@aws-sdk/lib-storage'); // For file upload
 
 // Initialize S3 client
-const s3Client = new S3Client({ region: process.env.AWS_REGION }); // Use v3 S3 client
+const s3Client = new S3Client({
+        region: process.env.AWS_REGION || 'us-west-1'
+ }); // Use v3 S3 client
 
 const app = express();
 app.use(cors());
