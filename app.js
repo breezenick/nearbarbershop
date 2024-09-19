@@ -20,33 +20,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// File upload route (example)
-app.post('/upload', uploadMiddleware.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
 
-  // Set up S3 upload parameters
-  const s3Params = {
-    Bucket: process.env.S3_BUCKET_NAME, // Replace with your bucket name
-    Key: `uploads/${req.file.originalname}`, // Customize your S3 key
-    Body: req.file.buffer, // File buffer from multer's memory storage
-    ContentType: req.file.mimetype
-  };
 
-  try {
-    // Use AWS SDK's Upload class for multipart uploads
-    const s3Upload = new Upload({
-      client: s3Client,
-      params: s3Params,
-    });
 
-    // Perform the upload
-    const data = await s3Upload.done();
-    res.status(201).json({ message: 'File uploaded successfully', url: data.Location });
-  } catch (err) {
-    console.error('S3 Upload Error:', err);
-    res.status(500).send('Failed to upload to S3');
+app.post('/upload', upload.single('file'), (req, res) => {
+  if (req.file && req.file.location) {  // multer-s3 adds the file location to the req.file object
+    res.status(200).send({ message: 'File uploaded successfully', url: req.file.location });
+  } else {
+    res.status(500).send('Failed to upload');
   }
 });
 
