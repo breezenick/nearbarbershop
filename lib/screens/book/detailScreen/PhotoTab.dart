@@ -5,6 +5,7 @@ import 'dart:io';       // For File
 import 'package:image_picker/image_picker.dart'; // For taking photos
 import 'package:http/http.dart' as http; // For making HTTP requests
 import 'package:http_parser/http_parser.dart'; // For specifying media type
+import 'package:intl/intl.dart';
 
 class PhotoTab extends StatefulWidget {
   final int? barbershopId; // Barbershop ID to interact with the backend
@@ -25,7 +26,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
   @override
   void initState() {
     super.initState();
-    fetchPhotos(); // Call your method to fetch images from the server
+   // fetchPhotos(); // Call your method to fetch images from the server
   }
 
   // Function to select an image from the camera
@@ -96,6 +97,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,36 +113,52 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                 // Display selected image or prompt to select one
                 _image == null
                     ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text('No image selected.'),
-                      )
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text('No image selected.'),
+                )
                     : Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Image.file(_image!),
-                      ),
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.file(_image!),
+                ),
 
                 // Display list of fetched photos from the server
                 photos.isEmpty
                     ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text('No photos available from the server.'),
-                      )
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text('No photos available from the server.'),
+                )
                     : ListView.builder(
-                        shrinkWrap: true, // This will prevent overflow in the ListView
-                        physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
-                        itemCount: photos.length,
-                        itemBuilder: (context, index) {
-                          final photo = photos[index];
-                          return ListTile(
-                            leading: CachedNetworkImage(
-                              imageUrl: photo['url'],
-                              placeholder: (context, url) => CircularProgressIndicator(),
-                              errorWidget: (context, url, error) => Icon(Icons.error),
-                            ),
-                            title: Text(photo['description'] ?? 'No Description'),
-                          );
-                        },
-                      ),
+                  shrinkWrap: true, // This will prevent overflow in the ListView
+                  physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
+                  itemCount: photos.length,
+                  itemBuilder: (context, index) {
+                    final photo = photos[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: photo['url'],
+                          placeholder: (context, url) => CircularProgressIndicator(),
+                          errorWidget: (context, url, error) => Icon(Icons.error),
+                        ),
+                        SizedBox(height: 8), // Adds space between the image and the text
+                        Text(
+                          'Description: ${photo['description'] ?? 'No Description'}',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'URL: ${photo['url']}',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                        Text(
+                          'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        Divider(), // Divider to separate photos
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -173,4 +191,10 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       ),
     );
   }
+}
+
+
+  String formatDate(String dateString) {
+  DateTime dateTime = DateTime.parse(dateString);
+  return DateFormat.yMMMd().format(dateTime); // e.g., "Sep 19, 2024"
 }
