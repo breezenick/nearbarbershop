@@ -6,8 +6,9 @@ const multer = require('multer'); // Import multer
 
 // AWS SDK v3 imports
 const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
-const { upload } = require('@aws-sdk/lib-storage'); // For file upload
 
+// Initialize multer with memory storage
+ const upload = multer({ storage: multer.memoryStorage() });
 
 // Initialize S3 client
 const s3Client = new S3Client({
