@@ -17,7 +17,6 @@ class PhotoTab extends StatefulWidget {
 }
 
 class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
-  File? _image; // To store the selected image
   List<dynamic> photos = []; // To store fetched photos from the server
   final picker = ImagePicker();
   bool get wantKeepAlive => true; // This ensures the state is preserved
@@ -49,14 +48,17 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     }
   }
 
-  // Function to select an image from the camera
-  Future<void> _pickImage() async {
+  // Function to select an image from the camera and upload it immediately
+  Future<void> _takeAndUploadPhoto() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
+      File imageFile = File(pickedFile.path);
+
+      // Immediately upload the photo after taking it
+      await uploadPhoto(widget.barbershopId, imageFile, 'A new photo');
+    } else {
+      print('No image selected.');
     }
   }
 
@@ -120,81 +122,48 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
         children: [
           // Expanded area for showing images and photos from the server
           Expanded(
-            child: ListView(
-              children: [
-                // Display selected image or prompt to select one
-                _image == null
-                    ? Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('No image selected.'),
-                )
-                    : Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Image.file(_image!),
-                ),
-
-                // Display list of fetched photos from the server
-                photos.isEmpty
-                    ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text('No photos available from the server.'),
-                  ),
-                )
-                    : ListView.builder(
-                  shrinkWrap: true, // This will prevent overflow in the ListView
-                  physics: ClampingScrollPhysics(), // Allows scrolling
-                  itemCount: photos.length,
-                  itemBuilder: (context, index) {
-                    final photo = photos[index];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: photo['url'],
-                          placeholder: (context, url) => CircularProgressIndicator(),
-                          errorWidget: (context, url, error) => Icon(Icons.error),
-                        ),
-                        SizedBox(height: 8), // Adds space between the image and the text
-                        Text(
-                          'Description: ${photo['description'] ?? 'No Description'}',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Divider(), // Divider to separate photos
-                      ],
-                    );
-                  },
-                ),
-              ],
+            child: photos.isEmpty
+                ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text('No photos available from the server.'),
+              ),
+            )
+                : ListView.builder(
+              shrinkWrap: true, // This will prevent overflow in the ListView
+              physics: ClampingScrollPhysics(), // Allows scrolling
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                final photo = photos[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: photo['url'],
+                      placeholder: (context, url) => CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
+                    ),
+                    SizedBox(height: 8), // Adds space between the image and the text
+                    Text(
+                      'Description: ${photo['description'] ?? 'No Description'}',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Divider(), // Divider to separate photos
+                  ],
+                );
+              },
             ),
           ),
           // Buttons area at the bottom
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                // Button to take a new photo
-                ElevatedButton(
-                  onPressed: _pickImage,
-                  child: Text('Take Photo'),
-                ),
-
-                // Button to upload the selected photo
-                ElevatedButton(
-                  onPressed: () {
-                    if (_image != null) {
-                      uploadPhoto(widget.barbershopId, _image!, 'A new photo');
-                    } else {
-                      print('No image selected to upload');
-                    }
-                  },
-                  child: Text('Upload Photo'),
-                ),
-              ],
+            child: ElevatedButton(
+              onPressed: _takeAndUploadPhoto, // Take and upload photo in one step
+              child: Text('Take and Upload Photo'),
             ),
           ),
         ],
