@@ -11,7 +11,9 @@ app.use(express.json());
 
 // Use the photo and review routes
 app.use('/photos', photoRoutes);
-app.use('/reviews', reviewRoutes);
+
+app.use('/barbershops/:id/reviews', reviewRoutes);  // Mount reviews under /barbershops/:id/reviews
+
 
 // Default route
 app.get('/', (req, res) => {

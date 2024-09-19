@@ -1,11 +1,10 @@
-// Review.js
 const express = require('express');
 const Barbershop = require('./Barbershop');
 
 const router = express.Router();
 
 // Route to add a review
-router.post('/:id/add-review', async (req, res) => {
+router.post('/', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { rating, comment, user } = req.body;
 
@@ -39,10 +38,10 @@ router.post('/:id/add-review', async (req, res) => {
   }
 });
 
-// Corrected Route: Fetch reviews for a specific barbershop
-router.get('/:id', async (req, res) => {
+// Fetch reviews for a specific barbershop
+router.get('/', async (req, res) => {
   try {
-    const id = req.params.id;  // Custom numerical ID
+    const id = req.params.id;
     const barbershop = await Barbershop.findOne({ id: id }).sort({ 'reviews.date': -1 });
 
     if (!barbershop || !barbershop.reviews) {
