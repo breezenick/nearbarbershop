@@ -1,15 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert'; // For encoding JSON
-import 'dart:io'; // For File
-import 'package:image_picker/image_picker.dart'; // For taking photos
-import 'package:http/http.dart' as http; // For making HTTP requests
-import 'package:http_parser/http_parser.dart'; // For specifying media type
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:intl/intl.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoTab extends StatefulWidget {
-  final int? barbershopId; // Barbershop ID to interact with the backend
+  final int? barbershopId;
 
   PhotoTab({Key? key, required this.barbershopId}) : super(key: key);
 
@@ -17,16 +17,15 @@ class PhotoTab extends StatefulWidget {
   _PhotoTabState createState() => _PhotoTabState();
 }
 
-class _PhotoTabState extends State<PhotoTab>
-    with AutomaticKeepAliveClientMixin {
-  List<dynamic> photos = []; // To store fetched photos from the server
+class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
+  List<dynamic> photos = [];
   final picker = ImagePicker();
-  bool get wantKeepAlive => true; // This ensures the state is preserved
+  bool isZooming = false;
 
   @override
   void initState() {
     super.initState();
-    fetchPhotos(); // Call your method to fetch images from the server
+    fetchPhotos(); // Call method to fetch images from the server
   }
 
   Future<void> fetchPhotos() async {
@@ -34,14 +33,13 @@ class _PhotoTabState extends State<PhotoTab>
       print('Invalid barbershop ID');
       return;
     }
-    final url =
-        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
 
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         setState(() {
-          photos = json.decode(response.body); // Update the list of photos
+          photos = json.decode(response.body);
         });
       } else {
         print('Failed to fetch photos: ${response.body}');
@@ -51,102 +49,10 @@ class _PhotoTabState extends State<PhotoTab>
     }
   }
 
-  Future<void> _takeAndUploadPhoto() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
-
-      // Resize the image before uploading
-      img.Image? originalImage = img.decodeImage(imageFile.readAsBytesSync());
-      if (originalImage != null) {
-        img.Image resizedImage = img.copyResize(originalImage, width: 800); // Resize to width 800px
-        imageFile.writeAsBytesSync(img.encodeJpg(resizedImage)); // Overwrite file with resized image
-      }
-
-      // Immediately upload the photo after resizing it
-      await uploadPhoto(widget.barbershopId, imageFile, 'A new photo');
-    } else {
-      print('No image selected.');
-    }
-  }
-
-  // Method to upload a photo to the server
-  Future<void> uploadPhoto(
-      int? barbershopId, File imageFile, String description) async {
-    if (barbershopId == null) {
-      print('Invalid barbershop ID');
-      return;
-    }
-
-    var uri = Uri.parse(
-        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
-    print('Uploading photo to: $uri');
-
-    var request = http.MultipartRequest('POST', uri)
-      ..fields['description'] = description
-      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path,
-          contentType: MediaType('image', 'jpg')));
-
-    try {
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-      if (response.statusCode == 201) {
-        print('Photo uploaded successfully');
-
-        // Parse the response to get the image URL if the server returns it
-        final responseData = jsonDecode(responseBody);
-        final newPhotoUrl = responseData['imageUrl'];
-
-        // Add the newly uploaded photo to the top of the list
-        _addPhotoToTop(newPhotoUrl, description);
-
-        fetchPhotos(); // Optionally refetch the full list of photos after upload
-      } else {
-        print(
-            'Failed to upload photo: ${response.statusCode}, Body: $responseBody');
-      }
-    } catch (e) {
-      print('Error uploading photo: $e');
-    }
-  }
-
-  // Add the new photo to the top of the list
-  void _addPhotoToTop(String newPhotoUrl, String description) {
-    setState(() {
-      photos.insert(0, {
-        'url': newPhotoUrl,
-        'description': description,
-        'date': DateTime.now().toIso8601String(),
-      });
-    });
-  }
-
-  // Delete a photo from the server
-  Future<void> deletePhoto(String photoUrl) async {
-    final url =
-        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
-    final response = await http.delete(
-      Uri.parse(url),
-      body: json.encode({'url': photoUrl}),
-      headers: {'Content-Type': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      setState(() {
-        photos.removeWhere((photo) => photo['url'] == photoUrl);
-      });
-      print('Photo deleted successfully');
-    } else {
-      print('Failed to delete photo');
-    }
-  }
-
-  bool isZooming = false;
-
-
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo Tab'),
@@ -161,85 +67,57 @@ class _PhotoTabState extends State<PhotoTab>
                 child: Text('No photos available from the server.'),
               ),
             )
-                : NotificationListener<ScrollNotification>(
-              onNotification: (scrollNotification) {
-                // Disable scrolling while zooming
-                if (isZooming) {
-                  return true;
-                }
-                return false;
-              },
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: isZooming
-                    ? NeverScrollableScrollPhysics()
-                    : ClampingScrollPhysics(),
-                itemCount: photos.length,
-                itemBuilder: (context, index) {
-                  final photo = photos[index];
-                  return Center(
-                    child: GestureDetector(
-                      onScaleStart: (_) {
-                        setState(() {
-                          isZooming = true;
-                        });
-                      },
-                      onScaleEnd: (_) {
-                        setState(() {
-                          isZooming = false;
-                        });
-                      },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                : ListView.builder(
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                final photo = photos[index];
+                return Card(
+                  margin: EdgeInsets.all(10),
+                  child: Column(
+                    children: [
+                      // Isolate the zoom area using a fixed size container
+                      Container(
+                        height: 300, // Fixed height for zoomable image area
+                        child: InteractiveViewer(
+                          boundaryMargin: EdgeInsets.all(20),
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: CachedNetworkImage(
+                            imageUrl: photo['url'],
+                            placeholder: (context, url) => CircularProgressIndicator(),
+                            errorWidget: (context, url, error) => Icon(Icons.error),
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Description: ${photo['description'] ?? 'No Description'}',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
+                        style: TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          InteractiveViewer(
-                            boundaryMargin: EdgeInsets.all(20),
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: CachedNetworkImage(
-                              imageUrl: photo['url'],
-                              placeholder: (context, url) =>
-                                  CircularProgressIndicator(),
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.error),
-                              fit: BoxFit.cover,
-                            ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              _confirmDelete(context, photo['url']);
+                            },
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Description: ${photo['description'] ?? 'No Description'}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  _confirmDelete(context, photo['url']);
-                                },
-                              ),
-                            ],
-                          ),
-                          Divider(),
                         ],
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _takeAndUploadPhoto,
-              child: Text('Take and Upload Photo'),
+                      Divider(),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -247,8 +125,6 @@ class _PhotoTabState extends State<PhotoTab>
     );
   }
 
-
-  // Confirmation dialog before deleting the photo
   void _confirmDelete(BuildContext context, String photoUrl) {
     showDialog(
       context: context,
@@ -267,7 +143,7 @@ class _PhotoTabState extends State<PhotoTab>
               child: Text('Delete'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                deletePhoto(photoUrl); // Call the deletePhoto function
+                deletePhoto(photoUrl); // Call deletePhoto function
               },
             ),
           ],
@@ -276,8 +152,29 @@ class _PhotoTabState extends State<PhotoTab>
     );
   }
 
+  Future<void> deletePhoto(String photoUrl) async {
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+    final response = await http.delete(
+      Uri.parse(url),
+      body: json.encode({'url': photoUrl}),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        photos.removeWhere((photo) => photo['url'] == photoUrl);
+      });
+      print('Photo deleted successfully');
+    } else {
+      print('Failed to delete photo');
+    }
+  }
+
   String formatDate(String dateString) {
     DateTime dateTime = DateTime.parse(dateString);
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
