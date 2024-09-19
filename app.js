@@ -1,210 +1,255 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('./database'); // Import the Mongoose connection
-const Barbershop = require('./Barbershop');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:intl/intl.dart';
 
-// AWS SDK v3 imports
-const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
-const { Upload } = require('@aws-sdk/lib-storage'); // For file upload
+class PhotoTab extends StatefulWidget {
+  final int? barbershopId; // Barbershop ID to interact with the backend
 
-// Initialize S3 client
-const s3Client = new S3Client({
-        region: process.env.AWS_REGION || 'us-west-1'
- }); // Use v3 S3 client
+  PhotoTab({Key? key, required this.barbershopId}) : super(key: key);
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+  @override
+  _PhotoTabState createState() => _PhotoTabState();
+}
 
-const upload = multer({ storage: multer.memoryStorage() });
+class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
+  List<dynamic> photos = []; // To store fetched photos from the server
+  final picker = ImagePicker();
+  bool get wantKeepAlive => true; // This ensures the state is preserved
 
-
-
-
-// Use this upload middleware in your routes
-app.post('/upload', upload.single('file'), (req, res) => {
-  if (req.file && req.file.location) {  // multer-s3 adds the file location to the req.file object
-    res.status(200).send({ message: 'File uploaded successfully', url: req.file.location });
-  } else {
-    res.status(500).send('Failed to upload');
-  }
-});
-
-// Default route
-app.get('/', (req, res) => {
-  res.send('★★★★★ Welcome to the MongoDB API ★★★★★');
-});
-
-// Fetch all barbershops
-app.get('/barbershops', async (req, res) => {
-  try {
-    const results = await Barbershop.find({}); // Fetch all documents from the collection
-    res.json(results);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).send('Failed to retrieve data');
-  }
-});
-
-
-app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) => {
-    console.log(req.file); // Check if buffer exists
-
-  const { id } = req.params;
-  const { file, body: { description } } = req;
-
-  if (!file) {
-    return res.status(400).json({ message: 'No file uploaded' });
+  @override
+  void initState() {
+    super.initState();
+    fetchPhotos(); // Call your method to fetch images from the server
   }
 
-  // Set up S3 upload parameters
-  const s3Params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: `barbershop_${id}/${file.originalname}`,
-    Body: file.buffer, // Ensure you're using the buffer, not a stream
-    ContentType: file.mimetype,
-    ACL: 'public-read', // Make the file public
-  };
-
-  try {
-    // Use AWS SDK v3's Upload class for multipart uploads
-    const upload = new Upload({
-      client: s3Client,  // AWS SDK v3 S3 client
-      params: s3Params,
-    });
-
-    const data = await upload.done(); // Perform the upload
-    const imageUrl = data.Location; // URL of the uploaded file
-
-  // Now, update the barbershop document in MongoDB to add the photo
-    await Barbershop.updateOne(
-      { id: id },
-      { $push: { photos: { url: imageUrl, description: description } } }
-    );
-
-
-    res.status(201).json({ message: '★★★★ Photo uploaded successfully ★★★★', imageUrl });
-  } catch (err) {
-    console.error('S3 Upload Error:', err);
-    res.status(500).send('Failed to upload photo');
-  }
-});
-
-
-
-// Delete a photo for a specific barbershop
-app.delete('/barbershops/:id/photos', async (req, res) => {
-  const { id } = req.params;
-  const { url } = req.body;  // Photo URL passed in the request body
-
-  if (!url) {
-    return res.status(400).json({ message: 'Photo URL is required' });
-  }
-
-  try {
-    // Remove the photo URL from the barbershop's photos array in MongoDB
-    const barbershop = await Barbershop.updateOne(
-      { id: parseInt(id, 10) },
-      { $pull: { photos: { url: url } } }
-    );
-
-    if (barbershop.modifiedCount === 0) {
-      return res.status(404).json({ message: 'Photo not found or Barbershop not found' });
+  Future<void> fetchPhotos() async {
+    if (widget.barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
     }
+    final url =
+        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
 
-    // Delete the photo from S3
-    const s3Params = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: url.split('/').pop()  // Get the file name from the URL
-    };
-
-    const s3Delete = await s3Client.send(new DeleteObjectCommand(s3Params));
-
-    res.status(200).json({ message: 'Photo deleted successfully' });
-  } catch (error) {
-    console.error('Failed to delete photo:', error);
-    res.status(500).json({ message: 'Failed to delete photo' });
-  }
-});
-
-
-// Search photos for a specific barbershop
-app.get('/barbershops/:id/photos/search', async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { query } = req.query;  // Search query
-  try {
-    const barbershop = await Barbershop.findOne({ id: id });
-    if (!barbershop || !barbershop.photos) {
-      return res.status(404).json({ message: 'No photos found.' });
-    }
-
-    // Filter photos by description matching the search query
-    const filteredPhotos = barbershop.photos.filter(photo =>
-      photo.description.toLowerCase().includes(query.toLowerCase())
-    );
-    res.json(filteredPhotos);
-  } catch (error) {
-    console.error('Error fetching photos:', error);
-    res.status(500).json({ message: 'Failed to search photos' });
-  }
-});
-
-// Add a review for a barbershop
-app.post('/barbershops/:id/add-review', async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  console.log('Parsed ID:', id, 'Request Body:', req.body);
-
-  // Basic validation
-  const { rating, comment, user } = req.body;
-  if (!rating || !comment || !user || rating < 1 || rating > 5) {
-    return res.status(400).json({ message: 'Invalid input data. Make sure rating is between 1 and 5.' });
-  }
-
-  try {
-    // Using the $push operator to add a review directly
-    const result = await Barbershop.updateOne(
-      { id: id },
-      {
-        $push: {
-          reviews: {
-            rating: rating,
-            comment: comment,
-            user: user,
-            date: new Date() // Setting the date when review is added
-          }
-        }
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          photos = json.decode(response.body); // Update the list of photos
+        });
+      } else {
+        print('Failed to fetch photos: ${response.body}');
       }
+    } catch (e) {
+      print('Error fetching photos: $e');
+    }
+  }
+
+  // Function to select an image from the camera and upload it immediately
+  Future<void> _takeAndUploadPhoto() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
+
+      // Immediately upload the photo after taking it
+      await uploadPhoto(widget.barbershopId, imageFile, 'A new photo');
+    } else {
+      print('No image selected.');
+    }
+  }
+
+  // Method to upload a photo to the server
+  Future<void> uploadPhoto(
+      int? barbershopId, File imageFile, String description) async {
+    if (barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+
+    var uri = Uri.parse(
+        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
+    print('Uploading photo to: $uri');
+
+    var request = http.MultipartRequest('POST', uri)
+      ..fields['description'] = description
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path,
+          contentType: MediaType('image', 'jpg')));
+
+    try {
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+      if (response.statusCode == 201) {
+        print('Photo uploaded successfully');
+
+        // Parse the response to get the image URL if the server returns it
+        final responseData = jsonDecode(responseBody);
+        final newPhotoUrl = responseData['imageUrl'];
+
+        // Add the newly uploaded photo to the top of the list
+        _addPhotoToTop(newPhotoUrl, description);
+
+        fetchPhotos(); // Optionally refetch the full list of photos after upload
+      } else {
+        print(
+            'Failed to upload photo: ${response.statusCode}, Body: $responseBody');
+      }
+    } catch (e) {
+      print('Error uploading photo: $e');
+    }
+  }
+
+  // Add the new photo to the top of the list
+  void _addPhotoToTop(String newPhotoUrl, String description) {
+    setState(() {
+      photos.insert(0, {
+        'url': newPhotoUrl,
+        'description': description,
+        'date': DateTime.now().toIso8601String(),
+      });
+    });
+  }
+
+  // Delete a photo from the server
+  Future<void> deletePhoto(String photoUrl) async {
+    final url =
+        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+    final response = await http.delete(
+      Uri.parse(url),
+      body: json.encode({'url': photoUrl}),
+      headers: {'Content-Type': 'application/json'},
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'Barbershop not found' });
+    if (response.statusCode == 200) {
+      setState(() {
+        photos.removeWhere((photo) => photo['url'] == photoUrl);
+      });
+      print('Photo deleted successfully');
+    } else {
+      print('Failed to delete photo');
     }
-
-    res.status(201).json({ message: 'Review added successfully' });
-  } catch (error) {
-    console.error('Failed to add review:', error);
-    res.status(500).json({ message: 'Failed to add review' });
   }
-});
 
-// Fetch reviews for a specific barbershop
-app.get('/barbershops/:id/reviews', async (req, res) => {
-  try {
-    const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
-    const barbershop = await Barbershop.findOne({ id: id }).sort({ 'reviews.date': -1 });
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
 
-    if (!barbershop || !barbershop.reviews) {
-      return res.status(404).json({ message: 'Failed to retrieve barbershop' });
-    }
-    res.json(barbershop.reviews);
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    res.status(500).send('Failed to retrieve reviews');
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Photo Tab'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: photos.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text('No photos available from the server.'),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: ClampingScrollPhysics(),
+                    itemCount: photos.length,
+                    itemBuilder: (context, index) {
+                      final photo = photos[index];
+                      return Card(
+                        margin: EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CachedNetworkImage(
+                              imageUrl: photo['url'],
+                              placeholder: (context, url) =>
+                                  CircularProgressIndicator(),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Description: ${photo['description'] ?? 'No Description'}',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Divider(),
+                            // Delete button at the bottom of the photo
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Center(
+                                child: ElevatedButton.icon(
+                                  onPressed: () =>
+                                      _confirmDelete(context, photo['url']),
+                                  icon: Icon(Icons.delete),
+                                  label: Text('Delete Photo'),
+                                  style: ElevatedButton.styleFrom(
+                                      primary: Colors.red),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: _takeAndUploadPhoto,
+              child: Text('Take and Upload Photo'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
-});
 
-// Listen on the specified port
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  // Confirmation dialog before deleting the photo
+  void _confirmDelete(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Photo'),
+          content: Text('Are you sure you want to delete this photo?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                deletePhoto(photoUrl); // Call the deletePhoto function
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String formatDate(String dateString) {
+    DateTime dateTime = DateTime.parse(dateString);
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+}
