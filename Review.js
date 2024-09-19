@@ -39,7 +39,20 @@ router.post('/:id/add-review', async (req, res) => {
   }
 });
 
-// Route to fetch reviews
-router.get('/:id/reviews', async (req, res) => {
-  const id = req.params.id;
-  try
+// Fetch reviews for a specific barbershop
+router.get('/barbershops/:id/reviews', async (req, res) => {
+  try {
+    const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
+    const barbershop = await Barbershop.findOne({ id: id }).sort({ 'reviews.date': -1 });
+
+    if (!barbershop || !barbershop.reviews) {
+      return res.status(404).json({ message: 'Failed to retrieve barbershop' });
+    }
+    res.json(barbershop.reviews);
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).send('Failed to retrieve reviews');
+  }
+});
+
+module.exports = router;
