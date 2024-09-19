@@ -94,22 +94,41 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) =
 
 
 
-// Fetch photos for a specific barbershop
-app.get('/barbershops/:id/photos', async (req, res) => {
-  const id = parseInt(req.params.id, 10);  // Ensure the ID is an integer
-  try {
-    const barbershop = await Barbershop.findOne({ id: id });
-    if (!barbershop || !barbershop.photos) {
-      return res.status(404).json({ message: 'No photos found for this barbershop.' });
-    }
-     const sortedPhotos = barbershop.photos.sort((a, b) => b.date - a.date);  // Sort by date in descending order
+// Delete a photo for a specific barbershop
+app.delete('/barbershops/:id/photos', async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.body;  // Photo URL passed in the request body
 
-    res.json(barbershop.photos);
+  if (!url) {
+    return res.status(400).json({ message: 'Photo URL is required' });
+  }
+
+  try {
+    // Remove the photo URL from the barbershop's photos array in MongoDB
+    const barbershop = await Barbershop.updateOne(
+      { id: parseInt(id, 10) },
+      { $pull: { photos: { url: url } } }
+    );
+
+    if (barbershop.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Photo not found or Barbershop not found' });
+    }
+
+    // Delete the photo from S3
+    const s3Params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: url.split('/').pop()  // Get the file name from the URL
+    };
+
+    const s3Delete = await s3Client.send(new DeleteObjectCommand(s3Params));
+
+    res.status(200).json({ message: 'Photo deleted successfully' });
   } catch (error) {
-    console.error('Error fetching photos:', error);
-    res.status(500).json({ message: 'Failed to retrieve photos' });
+    console.error('Failed to delete photo:', error);
+    res.status(500).json({ message: 'Failed to delete photo' });
   }
 });
+
 
 // Search photos for a specific barbershop
 app.get('/barbershops/:id/photos/search', async (req, res) => {

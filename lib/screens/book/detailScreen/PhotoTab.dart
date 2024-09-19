@@ -110,9 +110,31 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     });
   }
 
+
+  // Delete a photo from the server
+  Future<void> deletePhoto(String photoUrl) async {
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+    final response = await http.delete(
+      Uri.parse(url),
+      body: json.encode({'url': photoUrl}),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        photos.removeWhere((photo) => photo['url'] == photoUrl);
+      });
+      print('Photo deleted successfully');
+    } else {
+      print('Failed to delete photo');
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required because of AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -120,7 +142,6 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       ),
       body: Column(
         children: [
-          // Expanded area for showing images and photos from the server
           Expanded(
             child: photos.isEmpty
                 ? Center(
@@ -130,8 +151,8 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
               ),
             )
                 : ListView.builder(
-              shrinkWrap: true, // This will prevent overflow in the ListView
-              physics: ClampingScrollPhysics(), // Allows scrolling
+              shrinkWrap: true,
+              physics: ClampingScrollPhysics(),
               itemCount: photos.length,
               itemBuilder: (context, index) {
                 final photo = photos[index];
@@ -143,7 +164,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                       placeholder: (context, url) => CircularProgressIndicator(),
                       errorWidget: (context, url, error) => Icon(Icons.error),
                     ),
-                    SizedBox(height: 8), // Adds space between the image and the text
+                    SizedBox(height: 8),
                     Text(
                       'Description: ${photo['description'] ?? 'No Description'}',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -152,17 +173,27 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                       'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
                       style: TextStyle(color: Colors.grey),
                     ),
-                    Divider(), // Divider to separate photos
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            _confirmDelete(context, photo['url']);
+                          },
+                        ),
+                      ],
+                    ),
+                    Divider(),
                   ],
                 );
               },
             ),
           ),
-          // Buttons area at the bottom
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
-              onPressed: _takeAndUploadPhoto, // Take and upload photo in one step
+              onPressed: _takeAndUploadPhoto,
               child: Text('Take and Upload Photo'),
             ),
           ),
@@ -170,9 +201,39 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       ),
     );
   }
-}
 
-String formatDate(String dateString) {
-  DateTime dateTime = DateTime.parse(dateString);
-  return DateFormat.yMMMd().format(dateTime); // e.g., "Sep 19, 2024"
+  // Confirmation dialog before deleting the photo
+  void _confirmDelete(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Photo'),
+          content: Text('Are you sure you want to delete this photo?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                deletePhoto(photoUrl);  // Call the deletePhoto function
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String formatDate(String dateString) {
+    DateTime dateTime = DateTime.parse(dateString);
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+ 
 }
