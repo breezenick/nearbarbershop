@@ -40,6 +40,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     }
   }
 
+
   // Method to upload a photo to the server
   Future<void> uploadPhoto(int? barbershopId, File imageFile, String description) async {
     if (barbershopId == null) {
@@ -47,32 +48,30 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       return;
     }
 
-    var uri = Uri.parse(
-        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
-    print('Uploading photo to:============================= $uri');
-
+    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
     var request = http.MultipartRequest('POST', uri)
       ..fields['description'] = description
       ..files.add(await http.MultipartFile.fromPath(
           'file', imageFile.path,
           contentType: MediaType('image', 'jpg')));
-    print('Uploading photo to request :============================= $request');
 
     try {
       var response = await request.send();
-      var responseBody = await response.stream
-          .bytesToString(); // Convert response to String
+      var responseBody = await response.stream.bytesToString(); // Convert response to String
       if (response.statusCode == 201) {
         print('Photo uploaded successfully');
-        fetchPhotos();  // Refresh the list of photos after a successful upload
+        Map<String, dynamic> photoData = json.decode(responseBody);
+        setState(() {
+          photos.insert(0, photoData); // Insert the new photo at the beginning of the list
+        });
       } else {
-        print('Failed to upload photo: ${response
-            .statusCode}, Body: $responseBody');
+        print('Failed to upload photo: ${response.statusCode}, Body: $responseBody');
       }
     } catch (e) {
       print('Error uploading photo: $e');
     }
   }
+
 
     // Fetch photos from the server
   Future<void> fetchPhotos() async {
@@ -101,79 +100,49 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Photo Tab'),
-      ),
+      appBar: AppBar(title: Text('Photo Tab')),
       body: Column(
         children: [
-          // Expanded area for showing images and photos from the server
           Expanded(
-            child: ListView(
-              children: [
-                // Display selected image or prompt to select one
-                _image == null
-                    ? Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('No image selected.'),
-                )
-                    : Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Image.file(_image!),
-                ),
-
-                // Display list of fetched photos from the server
-                photos.isEmpty
-                    ? Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('No photos available from the server.'),
-                )
-                    : ListView.builder(
-                  shrinkWrap: true, // This will prevent overflow in the ListView
-                  physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
-                  itemCount: photos.length,
-                  itemBuilder: (context, index) {
-                    final photo = photos[index];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: photo['url'],
-                          placeholder: (context, url) => CircularProgressIndicator(),
-                          errorWidget: (context, url, error) => Icon(Icons.error),
-                        ),
-                        SizedBox(height: 8), // Adds space between the image and the text
-                        Text(
-                          'Description: ${photo['description'] ?? 'No Description'}',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'URL: ${photo['url']}',
-                          style: TextStyle(color: Colors.blue),
-                        ),
-                        Text(
-                          'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Divider(), // Divider to separate photos
-                      ],
-                    );
-                  },
-                ),
-              ],
+            child: ListView.builder(
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                final photo = photos[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: photo['url'],
+                      placeholder: (context, url) => CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Description: ${photo['description'] ?? 'No Description'}',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'URL: ${photo['url']}',
+                      style: TextStyle(color: Colors.blue),
+                    ),
+                    Text(
+                      'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Divider(),
+                  ],
+                );
+              },
             ),
           ),
-          // Buttons area at the bottom
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
               children: [
-                // Button to take a new photo
                 ElevatedButton(
                   onPressed: _pickImage,
                   child: Text('Take Photo'),
                 ),
-
-                // Button to upload the selected photo
                 ElevatedButton(
                   onPressed: () {
                     if (_image != null) {
@@ -192,7 +161,6 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     );
   }
 }
-
 
   String formatDate(String dateString) {
   DateTime dateTime = DateTime.parse(dateString);
