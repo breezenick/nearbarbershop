@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';  // For encoding JSON
-import 'dart:io';       // For File
+import 'dart:convert'; // For encoding JSON
+import 'dart:io'; // For File
 import 'package:image_picker/image_picker.dart'; // For taking photos
 import 'package:http/http.dart' as http; // For making HTTP requests
 import 'package:http_parser/http_parser.dart'; // For specifying media type
@@ -18,18 +18,15 @@ class PhotoTab extends StatefulWidget {
 
 class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
   File? _image; // To store the selected image
-  List<dynamic> photos = [];  // To store fetched photos from the server
+  List<dynamic> photos = []; // To store fetched photos from the server
   final picker = ImagePicker();
   bool get wantKeepAlive => true; // This ensures the state is preserved
-
 
   @override
   void initState() {
     super.initState();
     fetchPhotos(); // Call your method to fetch images from the server
   }
-
-
 
   Future<void> fetchPhotos() async {
     if (widget.barbershopId == null) {
@@ -42,7 +39,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         setState(() {
-          photos = json.decode(response.body);  // Update the list of photos
+          photos = json.decode(response.body); // Update the list of photos
         });
       } else {
         print('Failed to fetch photos: ${response.body}');
@@ -70,36 +67,51 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
       return;
     }
 
-    var uri = Uri.parse(
-        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
-    print('Uploading photo to:============================= $uri');
+    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
+    print('Uploading photo to: $uri');
 
     var request = http.MultipartRequest('POST', uri)
       ..fields['description'] = description
-      ..files.add(await http.MultipartFile.fromPath(
-          'file', imageFile.path,
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path,
           contentType: MediaType('image', 'jpg')));
-    print('Uploading photo to request :============================= $request');
 
     try {
       var response = await request.send();
-      var responseBody = await response.stream.bytesToString(); // Convert response to String
+      var responseBody = await response.stream.bytesToString();
       if (response.statusCode == 201) {
         print('Photo uploaded successfully');
-        fetchPhotos();  // Refresh the list of photos after a successful upload
+
+        // Parse the response to get the image URL if the server returns it
+        final responseData = jsonDecode(responseBody);
+        final newPhotoUrl = responseData['imageUrl'];
+
+        // Add the newly uploaded photo to the top of the list
+        _addPhotoToTop(newPhotoUrl, description);
+
+        fetchPhotos(); // Optionally refetch the full list of photos after upload
       } else {
-        print('Failed to upload photo: ${response
-            .statusCode}, Body: $responseBody');
+        print('Failed to upload photo: ${response.statusCode}, Body: $responseBody');
       }
     } catch (e) {
       print('Error uploading photo: $e');
     }
   }
 
-
+  // Add the new photo to the top of the list
+  void _addPhotoToTop(String newPhotoUrl, String description) {
+    setState(() {
+      photos.insert(0, {
+        'url': newPhotoUrl,
+        'description': description,
+        'date': DateTime.now().toIso8601String(),
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required because of AutomaticKeepAliveClientMixin
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo Tab'),
@@ -123,13 +135,15 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
 
                 // Display list of fetched photos from the server
                 photos.isEmpty
-                    ? Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('No photos available from the server.'),
+                    ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('No photos available from the server.'),
+                  ),
                 )
                     : ListView.builder(
                   shrinkWrap: true, // This will prevent overflow in the ListView
-                  physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
+                  physics: ClampingScrollPhysics(), // Allows scrolling
                   itemCount: photos.length,
                   itemBuilder: (context, index) {
                     final photo = photos[index];
@@ -146,10 +160,6 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                           'Description: ${photo['description'] ?? 'No Description'}',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                       /* Text(
-                          'URL: ${photo['url']}',
-                          style: TextStyle(color: Colors.blue),
-                        ),*/
                         Text(
                           'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
                           style: TextStyle(color: Colors.grey),
@@ -193,8 +203,7 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
   }
 }
 
-
-  String formatDate(String dateString) {
+String formatDate(String dateString) {
   DateTime dateTime = DateTime.parse(dateString);
   return DateFormat.yMMMd().format(dateTime); // e.g., "Sep 19, 2024"
 }

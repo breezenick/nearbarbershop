@@ -102,6 +102,8 @@ app.get('/barbershops/:id/photos', async (req, res) => {
     if (!barbershop || !barbershop.photos) {
       return res.status(404).json({ message: 'No photos found for this barbershop.' });
     }
+     const sortedPhotos = barbershop.photos.sort((a, b) => b.date - a.date);  // Sort by date in descending order
+
     res.json(barbershop.photos);
   } catch (error) {
     console.error('Error fetching photos:', error);
