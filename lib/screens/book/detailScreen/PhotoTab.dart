@@ -15,10 +15,11 @@ class PhotoTab extends StatefulWidget {
   _PhotoTabState createState() => _PhotoTabState();
 }
 
-class _PhotoTabState extends State<PhotoTab> {
+class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin {
   File? _image; // To store the selected image
   List<dynamic> photos = [];  // To store fetched photos from the server
   final picker = ImagePicker();
+  bool get wantKeepAlive => true; // This ensures the state is preserved
 
 
   @override
@@ -45,7 +46,8 @@ class _PhotoTabState extends State<PhotoTab> {
       return;
     }
 
-    var uri = Uri.parse('https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
+    var uri = Uri.parse(
+        'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/$barbershopId/add-photo');
     print('Uploading photo to:============================= $uri');
 
     var request = http.MultipartRequest('POST', uri)
@@ -53,22 +55,25 @@ class _PhotoTabState extends State<PhotoTab> {
       ..files.add(await http.MultipartFile.fromPath(
           'file', imageFile.path,
           contentType: MediaType('image', 'jpg')));
-  print('Uploading photo to request :============================= $request');
+    print('Uploading photo to request :============================= $request');
 
     try {
       var response = await request.send();
+      var responseBody = await response.stream
+          .bytesToString(); // Convert response to String
       if (response.statusCode == 201) {
         print('Photo uploaded successfully');
         fetchPhotos();  // Refresh the list of photos after a successful upload
       } else {
-        print('Failed to upload photo===================: ${response.statusCode}');
+        print('Failed to upload photo: ${response
+            .statusCode}, Body: $responseBody');
       }
     } catch (e) {
-      print('Error uploading photo=====================: $e');
+      print('Error uploading photo: $e');
     }
   }
 
-  // Fetch photos from the server
+    // Fetch photos from the server
   Future<void> fetchPhotos() async {
     if (widget.barbershopId == null) {
       print('Invalid barbershop ID');
@@ -91,55 +96,78 @@ class _PhotoTabState extends State<PhotoTab> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo Tab'),
       ),
-      body: ListView(
+      body: Column(
         children: [
-          // Display selected image or prompt to select one
-          _image == null
-              ? Text('No image selected.')
-              : Image.file(_image!),
+          // Expanded area for showing images and photos from the server
+          Expanded(
+            child: ListView(
+              children: [
+                // Display selected image or prompt to select one
+                _image == null
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text('No image selected.'),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.file(_image!),
+                      ),
 
-          // Button to take a new photo
-          ElevatedButton(
-            onPressed: _pickImage,
-            child: Text('Take Photo'),
+                // Display list of fetched photos from the server
+                photos.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text('No photos available from the server.'),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true, // This will prevent overflow in the ListView
+                        physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
+                        itemCount: photos.length,
+                        itemBuilder: (context, index) {
+                          final photo = photos[index];
+                          return ListTile(
+                            leading: CachedNetworkImage(
+                              imageUrl: photo['url'],
+                              placeholder: (context, url) => CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => Icon(Icons.error),
+                            ),
+                            title: Text(photo['description'] ?? 'No Description'),
+                          );
+                        },
+                      ),
+              ],
+            ),
           ),
-
-          // Button to upload the selected photo
-          ElevatedButton(
-            onPressed: () {
-              if (_image != null) {
-                uploadPhoto(widget.barbershopId, _image!, 'A new photo');
-              } else {
-                print('No image selected to upload');
-              }
-            },
-            child: Text('Upload Photo'),
-          ),
-
-          // Display list of fetched photos from the server
-          ListView.builder(
-            shrinkWrap: true, // This will prevent overflow in the ListView
-            physics: NeverScrollableScrollPhysics(), // Disable internal scrolling
-            itemCount: photos.length,
-            itemBuilder: (context, index) {
-              final photo = photos[index];
-              return ListTile(
-                leading: CachedNetworkImage(
-                  imageUrl: photo['url'],
-                  placeholder: (context, url) => CircularProgressIndicator(),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+          // Buttons area at the bottom
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                // Button to take a new photo
+                ElevatedButton(
+                  onPressed: _pickImage,
+                  child: Text('Take Photo'),
                 ),
-                title: Text(photo['description'] ?? 'No Description'),
-              );
-            },
+
+                // Button to upload the selected photo
+                ElevatedButton(
+                  onPressed: () {
+                    if (_image != null) {
+                      uploadPhoto(widget.barbershopId, _image!, 'A new photo');
+                    } else {
+                      print('No image selected to upload');
+                    }
+                  },
+                  child: Text('Upload Photo'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
