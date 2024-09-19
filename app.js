@@ -23,6 +23,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     ContentType: file.mimetype
   };
 
+
   s3.upload(s3Params, function(err, data) {
     if (err) {
       return res.status(500).send('Error uploading to S3');
