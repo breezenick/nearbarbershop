@@ -26,7 +26,30 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
   @override
   void initState() {
     super.initState();
-   // fetchPhotos(); // Call your method to fetch images from the server
+    fetchPhotos(); // Call your method to fetch images from the server
+  }
+
+
+
+  Future<void> fetchPhotos() async {
+    if (widget.barbershopId == null) {
+      print('Invalid barbershop ID');
+      return;
+    }
+    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          photos = json.decode(response.body);  // Update the list of photos
+        });
+      } else {
+        print('Failed to fetch photos: ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching photos: $e');
+    }
   }
 
   // Function to select an image from the camera
@@ -73,28 +96,6 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
     }
   }
 
-    // Fetch photos from the server
-  Future<void> fetchPhotos() async {
-    if (widget.barbershopId == null) {
-      print('Invalid barbershop ID');
-      return;
-    }
-
-    final url = 'https://nearbarbershop-fd0337b6be1a.herokuapp.com/barbershops/${widget.barbershopId}/photos';
-
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        setState(() {
-          photos = json.decode(response.body);  // Update the list of photos
-        });
-      } else {
-        print('Failed to fetch photos: ${response.body}');
-      }
-    } catch (e) {
-      print('Error fetching photos: $e');
-    }
-  }
 
 
   @override
@@ -145,10 +146,10 @@ class _PhotoTabState extends State<PhotoTab> with AutomaticKeepAliveClientMixin 
                           'Description: ${photo['description'] ?? 'No Description'}',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        Text(
+                       /* Text(
                           'URL: ${photo['url']}',
                           style: TextStyle(color: Colors.blue),
-                        ),
+                        ),*/
                         Text(
                           'Date: ${photo['date'] != null ? formatDate(photo['date']) : 'No Date'}',
                           style: TextStyle(color: Colors.grey),
