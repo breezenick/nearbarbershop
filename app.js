@@ -6,9 +6,11 @@ const multer = require('multer'); // Import multer
 
 // AWS SDK v3 imports
 const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
+const { Upload } = require('@aws-sdk/lib-storage'); // For multipart file uploads to S3
+
 
 // Initialize multer with memory storage
- const upload = multer({ storage: multer.memoryStorage() });
+ const uploadMiddleware = multer({ storage: multer.memoryStorage() });
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -20,14 +22,36 @@ app.use(cors());
 app.use(express.json());
 
 // File upload route (example)
-app.post('/upload', upload.single('file'), (req, res) => {
-  if (req.file) {
-    // Manual S3 upload can be done here if needed
-    res.status(200).send({ message: 'File uploaded successfully', file: req.file });
-  } else {
-    res.status(500).send('Failed to upload');
+app.post('/upload', uploadMiddleware.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+
+  // Set up S3 upload parameters
+  const s3Params = {
+    Bucket: process.env.S3_BUCKET_NAME, // Replace with your bucket name
+    Key: `uploads/${req.file.originalname}`, // Customize your S3 key
+    Body: req.file.buffer, // File buffer from multer's memory storage
+    ContentType: req.file.mimetype,
+    ACL: 'public-read', // Adjust ACL as per your requirements
+  };
+
+  try {
+    // Use AWS SDK's Upload class for multipart uploads
+    const s3Upload = new Upload({
+      client: s3Client,
+      params: s3Params,
+    });
+
+    // Perform the upload
+    const data = await s3Upload.done();
+    res.status(201).json({ message: 'File uploaded successfully', url: data.Location });
+  } catch (err) {
+    console.error('S3 Upload Error:', err);
+    res.status(500).send('Failed to upload to S3');
   }
 });
+
 
 // Default route
 app.get('/', (req, res) => {
@@ -45,12 +69,14 @@ app.get('/barbershops', async (req, res) => {
   }
 });
 
+
 // Upload a photo for a specific barbershop
-app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) => {
+app.post('/barbershops/:id/add-photo', uploadMiddleware.single('file'), async (req, res) => {
   console.log(req.file); // Check if buffer exists
 
   const { id } = req.params;
-  const { file, body: { description } } = req;
+  const file = req.file; // Access file directly from req.file
+  const { description } = req.body; // If you are receiving description in the body
 
   if (!file) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -60,19 +86,18 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) =
   const s3Params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: `barbershop_${id}/${file.originalname}`,
-    Body: file.buffer, // Ensure you're using the buffer, not a stream
-    ContentType: file.mimetype,
-    ACL: 'public-read', // Or any other ACL you prefer
+    Body: file.buffer, // Use file.buffer from multer's memoryStorage
+    ContentType: file.mimetype
   };
 
   try {
     // Use AWS SDK v3's Upload class for multipart uploads
-    const upload = new Upload({
+    const s3Upload = new Upload({
       client: s3Client,  // AWS SDK v3 S3 client
       params: s3Params,
     });
 
-    const data = await upload.done(); // Perform the upload
+    const data = await s3Upload.done(); // Perform the upload
     const imageUrl = data.Location; // URL of the uploaded file
 
     res.status(201).json({ message: '★★★★ Photo uploaded successfully ★★★★', imageUrl });
@@ -81,6 +106,7 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) =
     res.status(500).send('Failed to upload photo');
   }
 });
+
 
 // Fetch photos for a specific barbershop
 app.get('/barbershops/:id/photos', async (req, res) => {
