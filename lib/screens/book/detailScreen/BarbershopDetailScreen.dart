@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/barbershop.dart';
+import 'HomeTab.dart';
 import 'PhotoTab.dart';
 import 'PriceTab.dart';
 import 'ReviewTab.dart';
@@ -62,7 +63,7 @@ class BarbershopDetailScreen extends StatelessWidget {
             body: TabBarView(
               children: [
                 // Home Tab
-                Center(child: Text('Welcome to ${barbershop.name ?? ''}')),
+                HomeTab(child: Text('Welcome to ${barbershop.name ?? ''}')),
 
                 // Price Tab
                 PriceTab(menuInfo: barbershop.menuInfo),
