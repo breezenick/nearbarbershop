@@ -78,6 +78,13 @@ app.post('/barbershops/:id/add-photo', upload.single('file'), async (req, res) =
     const data = await upload.done(); // Perform the upload
     const imageUrl = data.Location; // URL of the uploaded file
 
+  // Now, update the barbershop document in MongoDB to add the photo
+    await Barbershop.updateOne(
+      { id: id },
+      { $push: { photos: { url: imageUrl, description: description } } }
+    );
+
+
     res.status(201).json({ message: '★★★★ Photo uploaded successfully ★★★★', imageUrl });
   } catch (err) {
     console.error('S3 Upload Error:', err);
