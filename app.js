@@ -4,6 +4,8 @@ const mongoose = require('./database'); // Import the Mongoose connection
 const Barbershop = require('./Barbershop');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
+const { DeleteObjectCommand } = require('@aws-sdk/client-s3'); // Import S3 delete command
+
 
 // AWS SDK v3 imports
 const { S3Client } = require('@aws-sdk/client-s3'); // For AWS SDK v3
@@ -109,6 +111,43 @@ app.get('/barbershops/:id/photos', async (req, res) => {
 
 
 
+// Route to delete a photo for a specific barbershop
+app.delete('/barbershops/:id/photos', async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.body;  // Get the photo URL from the request body
+
+  if (!url) {
+    return res.status(400).json({ message: 'Photo URL is required' });
+  }
+
+  try {
+    // Remove the photo URL from MongoDB
+    const barbershop = await Barbershop.updateOne(
+      { id: parseInt(id, 10) },
+      { $pull: { photos: { url: url } } }
+    );
+
+    if (barbershop.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Photo not found or Barbershop not found' });
+    }
+
+    // Extract the photo filename from the URL
+    const photoKey = url.split('/').pop();
+
+    // Delete the photo from AWS S3
+    const s3Params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: `barbershop_${id}/${photoKey}`
+    };
+
+    const s3Delete = await s3Client.send(new DeleteObjectCommand(s3Params));
+
+    res.status(200).json({ message: 'Photo deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete photo:', error);
+    res.status(500).json({ message: 'Failed to delete photo' });
+  }
+});
 
 
 
