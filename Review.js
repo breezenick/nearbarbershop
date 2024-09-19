@@ -39,14 +39,14 @@ router.post('/:id/add-review', async (req, res) => {
   }
 });
 
-// Fetch reviews for a specific barbershop
-router.get('/barbershops/:id/reviews', async (req, res) => {
+// Corrected Route: Fetch reviews for a specific barbershop
+router.get('/:id', async (req, res) => {
   try {
-    const id = req.params.id;  // This is a custom numerical ID, not an ObjectId
+    const id = req.params.id;  // Custom numerical ID
     const barbershop = await Barbershop.findOne({ id: id }).sort({ 'reviews.date': -1 });
 
     if (!barbershop || !barbershop.reviews) {
-      return res.status(404).json({ message: 'Failed to retrieve barbershop' });
+      return res.status(404).json({ message: 'Failed to retrieve reviews' });
     }
     res.json(barbershop.reviews);
   } catch (error) {
