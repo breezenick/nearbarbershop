@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:nearbarbershop2/screens/map/map_screen.dart';
 import 'package:nearbarbershop2/screens/mobile_layout/mobile_screen_layout.dart';
 import 'package:nearbarbershop2/sign_in.dart';
 

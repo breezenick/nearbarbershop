@@ -13,10 +13,10 @@ String imageUrl = "";
 Future<String?> signInWithGoogle() async {
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-        apiKey: 'AIzaSyA7owWlqFmWOt7ERjdSMp12D7O_GjC4zmg',
-        appId: '1:171778149253:android:65792f6bd509ef8ae3d2ec',
+        apiKey: 'AIzaSyCwlZwivhBRAyKnrpn9obgk_qzqVZMTGFQ',
+        appId: '1:171778149253:android:9e606e4b088229c6e3d2ec',
         projectId: 'nearbarbershop2',
-      messagingSenderId: '12345',
+      messagingSenderId: '171778149253',
 
   ));
 
