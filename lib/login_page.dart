@@ -4,7 +4,7 @@ import 'package:nearbarbershop2/screens/mobile_layout/mobile_screen_layout.dart'
 import 'package:nearbarbershop2/sign_in.dart';
 
 import 'main.dart';
-import 'main.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
