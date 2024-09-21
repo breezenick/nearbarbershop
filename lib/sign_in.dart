@@ -16,7 +16,7 @@ Future<String?> signInWithGoogle() async {
         apiKey: 'AIzaSyCwlZwivhBRAyKnrpn9obgk_qzqVZMTGFQ',
         appId: '1:171778149253:android:9e606e4b088229c6e3d2ec',
         projectId: 'nearbarbershop2',
-      messagingSenderId: '171778149253',
+      messagingSenderId: '12345',
 
   ));
 
