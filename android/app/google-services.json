@@ -14,8 +14,15 @@
       },
       "oauth_client": [
         {
+          "client_id": "171778149253-imttkvpd51fcjf4vd2ejkgf6rl65ql75.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.nearbarbershop2",
+            "certificate_hash": "151d741d0bc049d1de096521a5db1d52bcf8ca7a"
+          }
+        },
+        {
           "client_id": "171778149253-7a3b8j2ek7bknugmf645hb6aljibkibp.apps.googleusercontent.com",
-
           "client_type": 3
         }
       ],
