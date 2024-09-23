@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
 
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -11,59 +14,73 @@ String email = "";
 String imageUrl = "";
 
 Future<String?> signInWithGoogle() async {
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-        apiKey: 'AIzaSyCwlZwivhBRAyKnrpn9obgk_qzqVZMTGFQ',
-        appId: '1:171778149253:android:9e606e4b088229c6e3d2ec',
-        projectId: 'nearbarbershop2',
-      messagingSenderId: '12345',
 
-  ));
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp(
+          options: const FirebaseOptions(
+              apiKey: 'AIzaSyAi-ThdsuY7f6FlD_05vdLISt71Xqm04Lc',
+              appId: '1:127198410428:android:5faeb5e5e662e41a8a42b9',
+              projectId: 'nearbarbershop2-6798e',
+              messagingSenderId: '12345'
+          ));
+    } catch (e) {
+      print('Error======================================: $e');
+    }
+  }
 
+
+  // Attempt to sign in the user with Google
   final GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
-  final GoogleSignInAuthentication googleSignInAuthentication =
-      await googleSignInAccount!.authentication;
+  if (googleSignInAccount == null) {
+    // User canceled the sign in process
+    print('Sign-in aborted by user');
+    return null;
+  }
 
+  // Obtain the auth details from the request
+  final GoogleSignInAuthentication googleSignInAuthentication =
+  await googleSignInAccount.authentication;
+
+  // Create a new credential using the tokens obtained from the Google sign-in API
   final AuthCredential credential = GoogleAuthProvider.credential(
     accessToken: googleSignInAuthentication.accessToken,
     idToken: googleSignInAuthentication.idToken,
   );
 
-  final UserCredential authResult =
-      await _auth.signInWithCredential(credential);
-  final User? user = authResult.user;
+  try {
+    // Use the credentials to sign in with Firebase
+    final UserCredential authResult =
+    await _auth.signInWithCredential(credential);
+    final User? user = authResult.user;
 
-  if (user != null) {
-    // Checking if email and name is null
-    assert(user.email != null);
-    assert(user.displayName != null);
-    assert(user.photoURL != null);
+    if (user != null) {
+      // Successfully signed in
+      name = user.displayName ?? "";
+      email = user.email ?? "";
+      imageUrl = user.photoURL ?? "";
 
-    name = user.displayName!;
-    email = user.email!;
-    imageUrl = user.photoURL!;
+      // Optionally handle the name to get the first part only
+      if (name.contains(" ")) {
+        name = name.substring(0, name.indexOf(" "));
+      }
 
-    // Only taking the first part of the name, i.e., First Name
-    if (name.contains(" ")) {
-      name = name.substring(0, name.indexOf(" "));
+      print('signInWithGoogle succeeded: $user');
+
+      // Optionally return a more useful value or handle the signed in user
+      return '$user'; // Consider returning something like user.uid or a custom user object
     }
-
-    assert(!user.isAnonymous);
-    assert(await user.getIdToken() != null);
-
-    final User? currentUser = _auth.currentUser;
-    assert(user.uid == currentUser?.uid);
-
-    print('signInWithGoogle succeeded: $user');
-
-    return '$user';
+  } catch (e) {
+    // Handle any errors during sign in
+    print('Failed to sign in with Google: $e');
+    return null;
   }
 
   return null;
 }
 
 Future<void> signOutGoogle() async {
+  // Sign out from Google
   await googleSignIn.signOut();
-
   print("User Signed Out");
 }

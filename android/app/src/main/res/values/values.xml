@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">nearbarbershop2</string>
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+
+    <!-- Firebase API Key (example, typically not needed unless manually used) -->
+    <string name="firebase_api_key">AIzaSyAi-ThdsuY7f6FlD_05vdLISt71Xqm04Lc</string>
+</resources>

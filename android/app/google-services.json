@@ -1,44 +1,26 @@
 {
   "project_info": {
-    "project_number": "171778149253",
-    "project_id": "nearbarbershop2",
-    "storage_bucket": "nearbarbershop2.appspot.com"
+    "project_number": "127198410428",
+    "project_id": "nearbarbershop2-6798e",
+    "storage_bucket": "nearbarbershop2-6798e.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:171778149253:android:9e606e4b088229c6e3d2ec",
+        "mobilesdk_app_id": "1:127198410428:android:5faeb5e5e662e41a8a42b9",
         "android_client_info": {
           "package_name": "com.example.nearbarbershop2"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "171778149253-imttkvpd51fcjf4vd2ejkgf6rl65ql75.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.nearbarbershop2",
-            "certificate_hash": "151d741d0bc049d1de096521a5db1d52bcf8ca7a"
-          }
-        },
-        {
-          "client_id": "171778149253-7a3b8j2ek7bknugmf645hb6aljibkibp.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCwlZwivhBRAyKnrpn9obgk_qzqVZMTGFQ"
+          "current_key": "AIzaSyAi-ThdsuY7f6FlD_05vdLISt71Xqm04Lc"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "171778149253-7a3b8j2ek7bknugmf645hb6aljibkibp.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
